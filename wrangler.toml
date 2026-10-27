@@ -5,8 +5,4 @@ pages_build_output_dir = "./dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "homedecor-db"
-database_id = "YOUR_D1_DATABASE_ID"
-
-[[r2_buckets]]
-binding = "MEDIA"
-bucket_name = "homedecor-media"
+database_id = "608fe900-56bd-439d-9096-c342d2ee7b2e"
