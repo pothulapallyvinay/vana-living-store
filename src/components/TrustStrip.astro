@@ -1,0 +1,62 @@
+---
+// src/components/TrustStrip.astro
+import { trustStrip } from '../config/site';
+---
+
+<section class="trust-strip" aria-label="Store Guarantees">
+  <div class="trust-container">
+    {trustStrip.map(item => (
+      <div class="trust-item">
+        <span class="trust-icon" aria-hidden="true">{item.icon}</span>
+        <span class="trust-text">{item.text}</span>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .trust-strip {
+    background: #FFFFFF;
+    border-top: 1px solid var(--border, rgba(43,27,20,0.08));
+    border-bottom: 1px solid var(--border, rgba(43,27,20,0.08));
+    padding: 1.25rem 1.5rem;
+  }
+
+  .trust-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink, #2B1B14);
+  }
+
+  .trust-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  @media (max-width: 768px) {
+    .trust-container {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .trust-container {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

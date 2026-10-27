@@ -1,0 +1,860 @@
+---
+// src/pages/index.astro
+import Base from '../layouts/Base.astro';
+import HeroSlider from '../components/HeroSlider.astro';
+import TrustStrip from '../components/TrustStrip.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { site, nav } from '../config/site';
+import { getDB, all } from '../lib/db';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+let bestSellers: any[] = [];
+let spaceProducts: Record<string, any[]> = {};
+let matraProducts: any[] = [];
+
+// Fallback seed catalog data if D1 is not populated yet
+const FALLBACK_PRODUCTS = [
+  { id: 'P01', slug: '3d-layered-wooden-circular-mandala-wall-art-with-backlit-led-glow', name: '3D Layered Wooden Circular Mandala Wall Art with Backlit LED Glow', badge: 'HOT', brand_line: null, price_paise: 499900, compare_at_paise: 599900, primary_image: '/media/products/P01/1.svg', secondary_image: '/media/products/P01/2.svg', default_variant_id: 1, space: 'living-room', stock: 24 },
+  { id: 'P02', slug: 'framed-3d-multi-layered-wooden-abstract-three-faces-wall-art', name: 'Framed 3D Multi-Layered Wooden Abstract Three Faces Wall Art', badge: null, brand_line: null, price_paise: 349900, compare_at_paise: 449900, primary_image: '/media/products/P02/4.svg', secondary_image: '/media/products/P02/5.svg', default_variant_id: 2, space: 'living-room', stock: 18 },
+  { id: 'P04', slug: 'geometric-cutout-wooden-artichoke-pendant-lamp-shade', name: 'Geometric Cutout Wooden Artichoke Pendant Lamp Shade', badge: null, brand_line: null, price_paise: 649900, compare_at_paise: 799900, primary_image: '/media/products/P04/10.svg', secondary_image: '/media/products/P04/11.svg', default_variant_id: 4, space: 'living-room', stock: 22 },
+  { id: 'P05', slug: 'curved-slat-wooden-lantern-table-lamp-trio', name: 'Curved Slat Wooden Lantern Table Lamp Trio', badge: 'HOT', brand_line: null, price_paise: 449900, compare_at_paise: 549900, primary_image: '/media/products/P05/13.svg', secondary_image: '/media/products/P05/14.svg', default_variant_id: 5, space: 'living-room', stock: 15 },
+  { id: 'P07', slug: 'framed-3d-multi-layered-wooden-peacock-wall-art', name: 'Framed 3D Multi-Layered Wooden Peacock Wall Art', badge: null, brand_line: null, price_paise: 549900, compare_at_paise: 699900, primary_image: '/media/products/P07/18.svg', secondary_image: '/media/products/P07/19.svg', default_variant_id: 7, space: 'living-room', stock: 16 },
+  { id: 'P10', slug: 'semi-circular-3d-multi-layered-wooden-mandala-wall-art-headboard', name: 'Semi-Circular 3D Multi-Layered Wooden Mandala Wall Art Headboard', badge: 'HOT', brand_line: null, price_paise: 799900, compare_at_paise: 999900, primary_image: '/media/products/P10/26.svg', secondary_image: '/media/products/P10/27.svg', default_variant_id: 10, space: 'bedroom', stock: 12 },
+  { id: 'P12', slug: '3d-multi-layered-wooden-tree-of-life-circular-wall-art', name: '3D Multi-Layered Wooden Tree of Life Circular Wall Art', badge: null, brand_line: null, price_paise: 479900, compare_at_paise: 599900, primary_image: '/media/products/P12/29.svg', secondary_image: '/media/products/P12/30.svg', default_variant_id: 12, space: 'bedroom', stock: 25 },
+  { id: 'P13', slug: '3d-multi-layered-wooden-lotus-flower-mandala-circular-wall-art', name: '3D Multi-Layered Wooden Lotus Flower Mandala Circular Wall Art', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 499900, primary_image: '/media/products/P13/32.svg', secondary_image: '/media/products/P13/33.svg', default_variant_id: 13, space: 'pooja-room', stock: 21 },
+  { id: 'P17', slug: 'matra-haus-modern-wooden-curved-slat-pendant-lamp', name: 'MATRA HAUS Modern Wooden Curved Slat Pendant Lamp Fixture', badge: 'HOT', brand_line: 'MATRA HAUS', price_paise: 749900, compare_at_paise: 899900, primary_image: '/media/products/P17/39.svg', secondary_image: '/media/products/P17/40.svg', default_variant_id: 17, space: 'living-room', stock: 18 },
+  { id: 'P19', slug: 'lotus-flower-glowing-acrylic-wood-led-ambient-night-light', name: 'Lotus Flower Glowing Acrylic and Wood LED Ambient Night Light', badge: 'NEW', brand_line: null, price_paise: 199900, compare_at_paise: 249900, primary_image: '/media/products/P19/45.svg', secondary_image: '/media/products/P19/46.svg', default_variant_id: 19, space: 'bedroom', stock: 45 },
+  { id: 'P21', slug: 'modern-asymmetric-3d-multi-layered-walnut-wooden-wall-clock', name: 'Modern Asymmetric 3D Multi-Layered Walnut Wooden Wall Clock', badge: null, brand_line: null, price_paise: 329900, compare_at_paise: 399900, primary_image: '/media/products/P21/51.svg', secondary_image: '/media/products/P21/52.svg', default_variant_id: 21, space: 'office', stock: 22 },
+  { id: 'P22', slug: 'intricate-3d-multi-layered-wooden-mandala-wall-clock', name: 'Intricate 3D Multi-Layered Wooden Mandala Wall Clock', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 479900, primary_image: '/media/products/P22/54.svg', secondary_image: '/media/products/P22/55.svg', default_variant_id: 22, space: 'living-room', stock: 28 },
+  { id: 'P27', slug: 'matra-haus-aurora-red-curved-acrylic-rib-pendant-lamp', name: 'MATRA HAUS Aurora Red Curved Acrylic Rib Pendant Lamp', badge: 'HOT', brand_line: 'MATRA HAUS', price_paise: 849900, compare_at_paise: 999900, primary_image: '/media/products/P27/69.svg', secondary_image: '/media/products/P27/70.svg', default_variant_id: 27, space: 'living-room', stock: 14 },
+  { id: 'P28', slug: 'matra-haus-organic-fluted-wave-wooden-slat-pendant-light', name: 'MATRA HAUS Organic Fluted Wave Wooden Slat Pendant Light', badge: null, brand_line: 'MATRA HAUS', price_paise: 799900, compare_at_paise: 949900, primary_image: '/media/products/P28/73.svg', secondary_image: '/media/products/P28/74.svg', default_variant_id: 28, space: 'living-room', stock: 11 },
+  { id: 'P30', slug: 'sacred-om-aum-lotus-3d-multi-layered-wooden-mandala-wall-art', name: 'Sacred Om (Aum) Lotus 3D Multi-Layered Wooden Mandala Wall Art', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 499900, primary_image: '/media/products/P30/79.svg', secondary_image: null, default_variant_id: 30, space: 'pooja-room', stock: 16 },
+  { id: 'P31', slug: 'lord-ganesha-on-lotus-3d-multi-layered-colorful-wooden-wall-art', name: 'Lord Ganesha on Lotus 3D Multi-Layered Colorful Wooden Wall Art', badge: 'HOT', brand_line: null, price_paise: 499900, compare_at_paise: 649900, primary_image: '/media/products/P31/80.svg', secondary_image: null, default_variant_id: 31, space: 'pooja-room', stock: 14 },
+];
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    // Fetch Best Sellers
+    bestSellers = await all(db, `
+      SELECT p.id, p.slug, p.name, p.badge, p.brand_line,
+        v.id as default_variant_id, v.price_paise, v.compare_at_paise, v.stock,
+        m1.path as primary_image, m2.path as secondary_image
+      FROM products p
+      LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1
+      LEFT JOIN product_media m1 ON m1.product_id = p.id AND m1.is_primary = 1
+      LEFT JOIN product_media m2 ON m2.product_id = p.id AND m2.sort_order = 2 AND m2.is_watermarked = 0
+      WHERE p.is_active = 1 AND (p.is_bestseller = 1 OR p.badge = 'HOT')
+      LIMIT 8
+    `);
+
+    // Fetch MATRA HAUS studio items
+    matraProducts = await all(db, `
+      SELECT p.id, p.slug, p.name, p.badge, p.brand_line,
+        v.id as default_variant_id, v.price_paise, v.compare_at_paise, v.stock,
+        m1.path as primary_image, m2.path as secondary_image
+      FROM products p
+      LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1
+      LEFT JOIN product_media m1 ON m1.product_id = p.id AND m1.is_primary = 1
+      LEFT JOIN product_media m2 ON m2.product_id = p.id AND m2.sort_order = 2 AND m2.is_watermarked = 0
+      WHERE p.brand_line = 'MATRA HAUS'
+      LIMIT 3
+    `);
+
+    // Fetch by spaces
+    const spaceKeys = ['living-room', 'bedroom', 'pooja-room', 'entrance-hallway', 'office', 'gifting'];
+    for (const s of spaceKeys) {
+      spaceProducts[s] = await all(db, `
+        SELECT p.id, p.slug, p.name, p.badge, p.brand_line,
+          v.id as default_variant_id, v.price_paise, v.compare_at_paise, v.stock,
+          m1.path as primary_image, m2.path as secondary_image
+        FROM products p
+        JOIN product_tags pt ON pt.product_id = p.id AND pt.tag = ?
+        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1
+        LEFT JOIN product_media m1 ON m1.product_id = p.id AND m1.is_primary = 1
+        LEFT JOIN product_media m2 ON m2.product_id = p.id AND m2.sort_order = 2 AND m2.is_watermarked = 0
+        WHERE p.is_active = 1
+        LIMIT 4
+      `, [s]);
+    }
+  } catch {}
+}
+
+const normalizeProduct = (p: any) => {
+  let m1 = p.primary_image || `/media/products/${p.id}/1.svg`;
+  if (!m1.startsWith('http://') && !m1.startsWith('https://')) {
+    if (!m1.startsWith('/')) m1 = '/' + m1;
+    if (m1.startsWith('/products/')) m1 = '/media' + m1;
+  }
+  let m2 = p.secondary_image;
+  if (m2 && !m2.startsWith('http://') && !m2.startsWith('https://')) {
+    if (!m2.startsWith('/')) m2 = '/' + m2;
+    if (m2.startsWith('/products/')) m2 = '/media' + m2;
+  }
+  return { ...p, primary_image: m1, secondary_image: m2 };
+};
+
+if (bestSellers.length === 0) {
+  bestSellers = FALLBACK_PRODUCTS.slice(0, 8);
+  matraProducts = FALLBACK_PRODUCTS.filter(p => p.brand_line === 'MATRA HAUS');
+  const spaceKeys = ['living-room', 'bedroom', 'pooja-room', 'entrance-hallway', 'office', 'gifting'];
+  for (const s of spaceKeys) {
+    spaceProducts[s] = FALLBACK_PRODUCTS.filter(p => p.space === s).slice(0, 4);
+    if (spaceProducts[s].length === 0) spaceProducts[s] = FALLBACK_PRODUCTS.slice(0, 4);
+  }
+}
+
+bestSellers = bestSellers.map(normalizeProduct);
+matraProducts = matraProducts.map(normalizeProduct);
+for (const s of Object.keys(spaceProducts)) {
+  spaceProducts[s] = (spaceProducts[s] || []).map(normalizeProduct);
+}
+---
+
+<Base title={`${site.name} — Handcrafted 3D Wooden Wall Art, Lamps & Clocks`}>
+  <!-- Hero Carousel Slider -->
+  <HeroSlider />
+
+  <!-- Trust Strip Guarantees -->
+  <TrustStrip />
+
+  <!-- Shop By Category Cards -->
+  <section class="section category-section" aria-labelledby="cat-heading">
+    <div class="site-container">
+      <div class="section-header">
+        <span class="section-tag">CURATED DEPARTMENTS</span>
+        <h2 id="cat-heading" class="section-title">Shop by Category</h2>
+        <p class="section-desc">Laser-carved multi-tier woodwork, architectural ambient illumination, and artisan timepieces.</p>
+      </div>
+
+      <div class="category-grid">
+        <a href="/collections/wall-art" class="category-card">
+          <div class="category-card__media">
+            <img src="/media/products/P01/2.svg" alt="Wall Art Collection" width="400" height="300" loading="lazy" />
+          </div>
+          <div class="category-card__overlay">
+            <span class="cat-count">14 Sculptures</span>
+            <h3 class="cat-title">3D Wall Art & Mandalas</h3>
+            <span class="cat-link">Explore Collection &rarr;</span>
+          </div>
+        </a>
+
+        <a href="/collections/lighting" class="category-card">
+          <div class="category-card__media">
+            <img src="/media/products/P04/10.svg" alt="Lighting Collection" width="400" height="300" loading="lazy" />
+          </div>
+          <div class="category-card__overlay">
+            <span class="cat-count">9 Fixtures</span>
+            <h3 class="cat-title">Designer Lamps & Lighting</h3>
+            <span class="cat-link">Explore Collection &rarr;</span>
+          </div>
+        </a>
+
+        <a href="/collections/clocks" class="category-card">
+          <div class="category-card__media">
+            <img src="/media/products/P21/52.svg" alt="Clocks Collection" width="400" height="300" loading="lazy" />
+          </div>
+          <div class="category-card__overlay">
+            <span class="cat-count">5 Timepieces</span>
+            <h3 class="cat-title">Artisan Wall & Desk Clocks</h3>
+            <span class="cat-link">Explore Collection &rarr;</span>
+          </div>
+        </a>
+
+        <a href="/collections/matra-haus" class="category-card category-card--spotlight">
+          <div class="category-card__media">
+            <img src="/media/products/P17/39.svg" alt="MATRA HAUS Collection" width="400" height="300" loading="lazy" />
+          </div>
+          <div class="category-card__overlay">
+            <span class="cat-count">Architectural Edition</span>
+            <h3 class="cat-title">MATRA HAUS Design Studio</h3>
+            <span class="cat-link">Explore Studio &rarr;</span>
+          </div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Best Sellers & Signature Editions Grid -->
+  <section class="section bestsellers-section" aria-labelledby="bestsellers-heading">
+    <div class="site-container">
+      <div class="section-header-split">
+        <div>
+          <span class="section-tag">MOST LOVED PIECES</span>
+          <h2 id="bestsellers-heading" class="section-title">Signature Masterpieces</h2>
+        </div>
+        <a href="/collections/all" class="view-all-btn">View All 32 Handcrafted Designs &rarr;</a>
+      </div>
+
+      <div class="products-grid">
+        {bestSellers.map((prod, idx) => (
+          <ProductCard product={prod} eagerLoad={idx < 4} />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Shop By Space Tabbed Rows -->
+  <section class="section spaces-section" aria-labelledby="spaces-heading">
+    <div class="site-container">
+      <div class="section-header">
+        <span class="section-tag">STYLED FOR YOUR SANCTUARY</span>
+        <h2 id="spaces-heading" class="section-title">Shop by Living Space</h2>
+        <p class="section-desc">Harmonious woodwork curated specifically for each room in your home.</p>
+      </div>
+
+      <!-- Space Tabs -->
+      <div class="spaces-tab-nav" role="tablist" aria-label="Shop by Space Tabs">
+        {nav.spaces.map((sp, idx) => (
+          <button
+            class={`space-tab-btn ${idx === 0 ? 'is-active' : ''}`}
+            role="tab"
+            aria-selected={idx === 0 ? 'true' : 'false'}
+            aria-controls={`space-panel-${sp.slug}`}
+            data-space-target={sp.slug}
+          >
+            {sp.label}
+          </button>
+        ))}
+      </div>
+
+      <!-- Space Panels -->
+      {nav.spaces.map((sp, idx) => (
+        <div
+          id={`space-panel-${sp.slug}`}
+          class={`space-panel ${idx === 0 ? 'is-active' : ''}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${sp.slug}`}
+        >
+          <div class="products-grid">
+            {(spaceProducts[sp.slug] || bestSellers.slice(0, 4)).map(prod => (
+              <ProductCard product={prod} />
+            ))}
+          </div>
+          <div class="space-footer-link">
+            <a href={`/collections/all?space=${sp.slug}`} class="btn-space-explore">
+              Explore All {sp.label} Décor &rarr;
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- MATRA HAUS Lighting Spotlight with Watch & Buy Section -->
+  <section class="section matra-spotlight-section">
+    <div class="site-container">
+      <div class="matra-banner">
+        <div class="matra-banner__content">
+          <span class="matra-pill">MATRA HAUS × THE ARTISAN GUILD</span>
+          <h2 class="matra-banner__title">Sculptural Acoustic Lighting Fixtures</h2>
+          <p class="matra-banner__desc">
+            Designed for statement dining rooms, duplex atriums, and hospitality suites. Hand-assembled interlocking timber fins create dramatic shadow play and diffuse warm, glare-free ambient luminescence.
+          </p>
+          <div class="matra-banner__actions">
+            <a href="/products/matra-haus-modern-wooden-curved-slat-pendant-lamp" class="btn-matra-primary">
+              View Pendant P17 &rarr;
+            </a>
+            <a href="/collections/matra-haus" class="btn-matra-outline">
+              All Studio Editions
+            </a>
+          </div>
+        </div>
+
+        <!-- Watch & Buy Video Section -->
+        <div class="matra-video-box">
+          <div class="video-card">
+            <video
+              src="/media/products/P17/video-1.mp4"
+              poster="/media/products/P17/39.svg"
+              playsinline
+              muted
+              loop
+              autoplay
+              class="matra-video"
+            ></video>
+            <div class="video-overlay">
+              <span class="live-tag">● 3D TURNTABLE</span>
+              <a href="/products/matra-haus-modern-wooden-curved-slat-pendant-lamp" class="video-buy-link">
+                <span>P17 Curved Slat Pendant</span>
+                <span class="tap-hint">Tap to view</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Artisan Craftsmanship Story -->
+  <section class="section craft-story-section">
+    <div class="site-container">
+      <div class="craft-grid">
+        <div class="craft-image-frame">
+          <img src="/media/products/P06/17.svg" alt="Macro wood laser cutting detail" width="540" height="540" loading="lazy" />
+        </div>
+        <div class="craft-story-content">
+          <span class="section-tag">HERITAGE MEETS LASER PRECISION</span>
+          <h2 class="section-title">The Art of Multi-Layered Relief Woodcraft</h2>
+          <p class="craft-p">
+            Each wall sculpture begins with sustainably sourced Russian birch plywood and solid walnut sheets, calibrated to millimeter tolerances. Our artisans stack between 6 to 9 distinct architectural tiers, hand-gluing each layer to create breathtaking 3D shadows and visual depth that changes with room light.
+          </p>
+          <div class="craft-features">
+            <div class="craft-feat">
+              <span class="feat-icon">📐</span>
+              <div>
+                <strong>Precision Laser Filigree</strong>
+                <p>Intricate internal mandalas and sacred motifs cut without edge charring.</p>
+              </div>
+            </div>
+            <div class="craft-feat">
+              <span class="feat-icon">🪵</span>
+              <div>
+                <strong>Non-Toxic Wood Finishes</strong>
+                <p>Hand-rubbed botanical oils and satin acrylic lacquers preserve grain integrity.</p>
+              </div>
+            </div>
+            <div class="craft-feat">
+              <span class="feat-icon">💡</span>
+              <div>
+                <strong>Concealed Warm Backlighting</strong>
+                <p>Commercial-grade 3000K warm LED strips integrated into rear floating chassis.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cash on Delivery Policy Assurance Banner -->
+  <section class="section cod-banner-section">
+    <div class="site-container">
+      <div class="cod-banner-card">
+        <div class="cod-icon">💵</div>
+        <div class="cod-content">
+          <h3 class="cod-title">Pan-India Cash on Delivery & Free Delivery Available</h3>
+          <p class="cod-text">
+            Complimentary shipping on orders above ₹999. For custom large installations, pay 30% advance online and the remainder safely at your doorstep upon verified parcel delivery.
+          </p>
+        </div>
+        <a href="/policies/shipping-delivery" class="cod-link">Shipping Policy &rarr;</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .section {
+    padding: 5rem 0;
+  }
+
+  .site-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .section-header {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 3.5rem;
+  }
+
+  .section-header-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 2.5rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .section-tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent, #B9803A);
+    display: inline-block;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.75rem 0;
+    line-height: 1.15;
+  }
+
+  .section-desc {
+    font-size: 1rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .view-all-btn {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--accent, #B9803A);
+    text-decoration: none;
+    padding: 0.5rem 0;
+    border-bottom: 2px solid var(--accent, #B9803A);
+    transition: all 0.2s ease;
+  }
+
+  .view-all-btn:hover {
+    color: var(--primary, #4A2C1D);
+    border-color: var(--primary, #4A2C1D);
+  }
+
+  /* Category Grid */
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.75rem;
+  }
+
+  .category-card {
+    position: relative;
+    border-radius: var(--radius, 10px);
+    overflow: hidden;
+    aspect-ratio: 3 / 4;
+    text-decoration: none;
+    color: #FFFFFF;
+    box-shadow: 0 8px 24px rgba(43, 27, 20, 0.08);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s;
+  }
+
+  .category-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 16px 36px rgba(43, 27, 20, 0.16);
+  }
+
+  .category-card__media {
+    position: absolute;
+    inset: 0;
+    background: var(--surface-2, #F3EBDF);
+  }
+
+  .category-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .category-card:hover .category-card__media img {
+    transform: scale(1.08);
+  }
+
+  .category-card__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(43,27,20,0.88) 0%, rgba(43,27,20,0.3) 50%, transparent 100%);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .cat-count {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: #E2B273;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .cat-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.45rem;
+    font-weight: 700;
+    margin: 0.35rem 0 0.5rem 0;
+    color: #FFFFFF;
+    line-height: 1.2;
+  }
+
+  .cat-link {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #F8EFE4;
+    opacity: 0.85;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .category-card:hover .cat-link {
+    opacity: 1;
+    transform: translateX(4px);
+  }
+
+  /* Products Grid */
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.75rem;
+  }
+
+  /* Spaces Tabs */
+  .spaces-tab-nav {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+
+  .space-tab-btn {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.12));
+    padding: 0.65rem 1.4rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink, #2B1B14);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .space-tab-btn:hover {
+    border-color: var(--primary, #4A2C1D);
+  }
+
+  .space-tab-btn.is-active {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border-color: var(--primary, #4A2C1D);
+  }
+
+  .space-panel {
+    display: none;
+  }
+
+  .space-panel.is-active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .space-footer-link {
+    text-align: center;
+    margin-top: 2.5rem;
+  }
+
+  .btn-space-explore {
+    display: inline-block;
+    background: var(--bg, #FBF7F1);
+    border: 1px solid var(--primary, #4A2C1D);
+    color: var(--primary, #4A2C1D);
+    padding: 0.75rem 1.8rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-space-explore:hover {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+  }
+
+  /* MATRA Spotlight Banner */
+  .matra-spotlight-section {
+    background: #2B1B14;
+    color: #FFFFFF;
+    padding: 5rem 0;
+  }
+
+  .matra-banner {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+
+  .matra-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: #E2B273;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+
+  .matra-banner__title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.75rem;
+    font-weight: 700;
+    line-height: 1.15;
+    margin: 0 0 1.25rem 0;
+  }
+
+  .matra-banner__desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: rgba(248, 239, 228, 0.85);
+    margin: 0 0 2rem 0;
+  }
+
+  .matra-banner__actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-matra-primary {
+    background: var(--accent, #B9803A);
+    color: #FFFFFF;
+    padding: 0.85rem 1.75rem;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .btn-matra-primary:hover {
+    background: #C99049;
+  }
+
+  .btn-matra-outline {
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #FFFFFF;
+    padding: 0.85rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .btn-matra-outline:hover {
+    border-color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .matra-video-box {
+    display: flex;
+    justify-content: center;
+  }
+
+  .video-card {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    border: 1px solid rgba(185, 128, 58, 0.3);
+    background: #000;
+  }
+
+  .matra-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .video-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 60%);
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .live-tag {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #E2B273;
+  }
+
+  .video-buy-link {
+    color: #FFFFFF;
+    text-decoration: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .tap-hint {
+    font-size: 0.75rem;
+    background: var(--accent, #B9803A);
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+  }
+
+  /* Craft Story Section */
+  .craft-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 4.5rem;
+    align-items: center;
+  }
+
+  .craft-image-frame {
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--surface-2, #F3EBDF);
+    box-shadow: 0 16px 40px rgba(43, 27, 20, 0.12);
+  }
+
+  .craft-image-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .craft-p {
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    color: var(--ink-2, #6B5A50);
+    margin: 0 0 2rem 0;
+  }
+
+  .craft-features {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .craft-feat {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .feat-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    background: #F3EBDF;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .craft-feat strong {
+    display: block;
+    font-size: 1rem;
+    color: var(--primary, #4A2C1D);
+    margin-bottom: 0.2rem;
+  }
+
+  .craft-feat p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  /* COD Banner */
+  .cod-banner-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.12));
+    border-left: 4px solid var(--accent, #B9803A);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+  }
+
+  .cod-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+  }
+
+  .cod-content {
+    flex: 1;
+  }
+
+  .cod-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.25rem 0;
+  }
+
+  .cod-text {
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+  }
+
+  .cod-link {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent, #B9803A);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 1024px) {
+    .category-grid,
+    .products-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+    .matra-banner,
+    .craft-grid {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .category-grid,
+    .products-grid {
+      grid-template-columns: 1fr;
+    }
+    .cod-banner-card {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+</style>
+
+<script>
+  // Space tab switcher
+  const tabBtns = document.querySelectorAll('.space-tab-btn');
+  const panels = document.querySelectorAll('.space-panel');
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.getAttribute('data-space-target');
+      tabBtns.forEach(b => {
+        b.classList.remove('is-active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-selected', 'true');
+
+      panels.forEach(p => {
+        if (p.id === `space-panel-${target}`) {
+          p.classList.add('is-active');
+        } else {
+          p.classList.remove('is-active');
+        }
+      });
+    });
+  });
+</script>

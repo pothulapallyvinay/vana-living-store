@@ -1,0 +1,117 @@
+---
+// src/pages/admin/coupons.astro
+import Admin from '../../layouts/Admin.astro';
+import { getDB, all } from '../../lib/db';
+import { formatPrice } from '../../lib/format';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+let coupons: any[] = [];
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    coupons = await all(db, `SELECT * FROM coupons ORDER BY code ASC`);
+  } catch {}
+}
+---
+
+<Admin title="Discount Coupons" activeNav="coupons">
+  <div class="admin-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <h2 style="font-family:var(--admin-font-head);font-size:1.5rem;color:var(--admin-primary);margin:0;">Active Promo Codes</h2>
+      <button type="button" class="admin-btn admin-btn--accent" onclick="document.getElementById('coupon-modal').style.display = 'block'">
+        + Create New Coupon
+      </button>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Value</th>
+            <th>Min. Order</th>
+            <th>Max Discount</th>
+            <th>Used Count</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {coupons.map(cp => (
+            <tr>
+              <td><code>{cp.code}</code></td>
+              <td><span style="text-transform:uppercase;font-size:0.75rem;">{cp.type}</span></td>
+              <td><strong>{cp.type === 'percent' ? `${cp.value}%` : formatPrice(cp.value * 100)}</strong></td>
+              <td>{formatPrice(cp.min_order_paise)}</td>
+              <td>{cp.max_discount_paise ? formatPrice(cp.max_discount_paise) : 'Unlimited'}</td>
+              <td>{cp.used_count || 0}</td>
+              <td>
+                <span class={`status-badge ${cp.is_active ? 'status-badge--delivered' : 'status-badge--cancelled'}`}>
+                  {cp.is_active ? 'Active' : 'Expired'}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create Coupon Modal -->
+  <div id="coupon-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;">
+    <div style="background:#FFFFFF;border-radius:10px;padding:2rem;max-width:450px;margin:10% auto;">
+      <h3 style="margin-top:0;">Create Discount Coupon</h3>
+      <form id="coupon-form">
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.25rem;">Coupon Code *</label>
+          <input type="text" id="cp_code" required placeholder="e.g. FESTIVE15" style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:4px;text-transform:uppercase;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.25rem;">Discount Type</label>
+          <select id="cp_type" style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;">
+            <option value="percent">Percentage (%)</option>
+            <option value="fixed">Flat Amount (₹)</option>
+          </select>
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.25rem;">Value (% or Rupees) *</label>
+          <input type="number" id="cp_val" required placeholder="e.g. 15" style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:1.5rem;">
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.25rem;">Minimum Order (₹)</label>
+          <input type="number" id="cp_min" placeholder="e.g. 2000" style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+          <button type="button" class="admin-btn admin-btn--outline" onclick="document.getElementById('coupon-modal').style.display = 'none'">Cancel</button>
+          <button type="submit" class="admin-btn admin-btn--primary">Create Coupon</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Admin>
+
+<script>
+  const form = document.getElementById('coupon-form');
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = (document.getElementById('cp_code') as HTMLInputElement).value;
+    const type = (document.getElementById('cp_type') as HTMLSelectElement).value;
+    const val = (document.getElementById('cp_val') as HTMLInputElement).value;
+    const min = (document.getElementById('cp_min') as HTMLInputElement).value;
+
+    try {
+      const res = await fetch('/api/admin/coupons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, type, value: val, min_order_rupees: min, is_active: true }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert('Failed to save coupon.');
+      }
+    } catch {
+      alert('Network error.');
+    }
+  });
+</script>

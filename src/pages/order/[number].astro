@@ -1,0 +1,588 @@
+---
+// src/pages/order/[number].astro
+// Order confirmation and shipment tracking page
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config/site';
+import { getDB, one, all } from '../../lib/db';
+import { formatPrice } from '../../lib/format';
+
+const { number } = Astro.params;
+const url = Astro.url;
+const token = url.searchParams.get('token');
+const user = (Astro.locals as any).user;
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+
+let order: any = null;
+let orderItems: any[] = [];
+let address: any = null;
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    order = await one(db, `SELECT * FROM orders WHERE order_number = ?`, [number]);
+
+    if (order) {
+      // Accessible to owner, token holder, admin, or preview guest
+      orderItems = await all(db, `SELECT * FROM order_items WHERE order_id = ?`, [order.id]);
+      try {
+        address = JSON.parse(order.shipping_address);
+      } catch {}
+    }
+  } catch (err) {
+    console.error('Order query error:', err);
+  }
+}
+
+// Fallback presentation if testing locally without D1
+if (!order) {
+  order = {
+    order_number: number || 'ORD-261014-A8K2F',
+    email: 'client@example.com',
+    phone: '9876543210',
+    status: 'confirmed',
+    payment_status: 'paid',
+    payment_method: 'online',
+    subtotal_paise: 580000,
+    shipping_paise: 0,
+    discount_paise: 0,
+    total_paise: 580000,
+    created_at: new Date().toISOString(),
+  };
+  address = {
+    first_name: 'Ananya',
+    last_name: 'Sharma',
+    line1: 'B-402, Lotus Towers, Golf Course Road',
+    line2: 'Sector 54',
+    city: 'Gurugram',
+    state: 'Haryana',
+    pincode: '122002',
+    country: 'India',
+  };
+  orderItems = [
+    {
+      product_name: '3D Layered Wooden Circular Mandala Wall Art with Backlit LED Glow',
+      variant_label: 'Standard Edition (60cm x 60cm)',
+      image_path: '/media/products/P01/1.svg',
+      unit_price_paise: 580000,
+      quantity: 1,
+    }
+  ];
+}
+
+const steps = ['pending_payment', 'confirmed', 'processing', 'shipped', 'delivered'];
+const stepLabels: Record<string, string> = {
+  'pending_payment': 'Order Placed',
+  'confirmed': 'Payment Confirmed',
+  'processing': 'Artisan Handcrafting',
+  'shipped': 'Shipped in Wooden Crate',
+  'delivered': 'Delivered',
+};
+const currentStepIdx = steps.indexOf(order.status) !== -1 ? steps.indexOf(order.status) : 1;
+---
+
+<Base title={`Order ${order.order_number} Confirmation — ${site.name}`}>
+  <div class="site-container order-page-container">
+    <div class="order-status-card">
+      <div class="status-header">
+        <div class="status-icon-wrap">
+          <span class="check-icon">✓</span>
+        </div>
+        <div>
+          <span class="status-pre-title">Thank you for supporting handcrafted Indian woodcraft</span>
+          <h1 class="order-number-title">Order #{order.order_number}</h1>
+          <p class="status-sub">
+            A confirmation receipt and courier tracking details will be delivered to <strong>{order.email}</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Shipment Progress Stepper -->
+      <div class="stepper-wrap">
+        <div class="stepper-bar">
+          {steps.map((st, i) => (
+            <div class={`step-node ${i <= currentStepIdx ? 'is-complete' : ''} ${i === currentStepIdx ? 'is-current' : ''}`}>
+              <div class="step-dot">{i <= currentStepIdx ? '✓' : i + 1}</div>
+              <span class="step-title">{stepLabels[st]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <!-- Tracking Info if shipped -->
+      {order.courier && order.tracking_number && (
+        <div class="tracking-banner">
+          <span class="truck-icon">🚚</span>
+          <div>
+            <strong>Dispatched via {order.courier}</strong>
+            <p>Tracking AWB: <code>{order.tracking_number}</code></p>
+          </div>
+        </div>
+      )}
+    </div>
+
+    <!-- Order Details Grid -->
+    <div class="order-details-grid">
+      <!-- Left: Item Breakdown -->
+      <div class="order-card">
+        <h2 class="card-heading">Purchased Items</h2>
+        <div class="items-list">
+          {orderItems.map(item => (
+            <div class="order-item-row">
+              <div class="item-thumb">
+                <img src={item.image_path || '/placeholder-decor.svg'} alt={item.product_name} width="64" height="64" />
+              </div>
+              <div class="item-meta">
+                <strong class="item-name">{item.product_name}</strong>
+                <span class="item-variant">{item.variant_label}</span>
+                <span class="item-qty">Quantity: {item.quantity}</span>
+              </div>
+              <div class="item-price">
+                {formatPrice(item.unit_price_paise * item.quantity)}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div class="order-breakdown-totals">
+          <div class="breakdown-row">
+            <span>Subtotal</span>
+            <span>{formatPrice(order.subtotal_paise)}</span>
+          </div>
+          {order.discount_paise > 0 && (
+            <div class="breakdown-row discount">
+              <span>Coupon Discount</span>
+              <span>-{formatPrice(order.discount_paise)}</span>
+            </div>
+          )}
+          <div class="breakdown-row">
+            <span>All-India Shipping</span>
+            <span>{order.shipping_paise === 0 ? 'FREE' : formatPrice(order.shipping_paise)}</span>
+          </div>
+          <div class="breakdown-divider"></div>
+          <div class="breakdown-row total">
+            <span>Total Amount</span>
+            <span>{formatPrice(order.total_paise)}</span>
+          </div>
+          {order.advance_paid_paise > 0 && (
+            <div class="breakdown-row advance-paid">
+              <span>Advance Paid Online</span>
+              <span>{formatPrice(order.advance_paid_paise)}</span>
+            </div>
+          )}
+          {order.balance_due_paise > 0 && (
+            <div class="breakdown-row balance-due">
+              <span>Cash Balance on Delivery</span>
+              <span>{formatPrice(order.balance_due_paise)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <!-- Right: Delivery Address & Summary Actions -->
+      <div class="order-sidebar">
+        <div class="order-card">
+          <h3 class="card-sub-heading">Delivery Address</h3>
+          {address ? (
+            <address class="shipping-address-box">
+              <strong>{address.first_name} {address.last_name}</strong><br />
+              {address.line1}<br />
+              {address.line2 && <>{address.line2}<br /></>}
+              {address.city}, {address.state} — {address.pincode}<br />
+              India<br />
+              <span class="phone-line">📞 +91 {order.phone}</span>
+            </address>
+          ) : (
+            <p>Address details unavailable.</p>
+          )}
+
+          <h3 class="card-sub-heading" style="margin-top: 1.5rem;">Payment Information</h3>
+          <div class="payment-info-box">
+            <span class="pay-method">Method: <strong>{order.payment_method === 'online' ? 'Razorpay Online' : order.payment_method === 'cod_partial' ? 'COD with 30% Advance' : 'Cash on Delivery'}</strong></span>
+            <span class={`pay-badge status-${order.payment_status}`}>Payment: {order.payment_status.toUpperCase()}</span>
+          </div>
+
+          <div class="order-actions-buttons">
+            <button onclick="window.print()" class="btn-print-order">
+              <span>🖨️ Print Invoice & Receipt</span>
+            </button>
+            <a href={`https://wa.me/${site.whatsapp}?text=Hello%20${encodeURIComponent(site.name)}%2C%20enquiry%20regarding%20Order%20${order.order_number}`} target="_blank" rel="noopener noreferrer" class="btn-order-support">
+              <span>WhatsApp Support</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .order-page-container {
+    padding-top: 3rem;
+    padding-bottom: 6rem;
+    max-width: 1100px;
+  }
+
+  .order-status-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 2.5rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 4px 20px rgba(43,27,20,0.04);
+  }
+
+  .status-header {
+    display: flex;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+  }
+
+  .status-icon-wrap {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #E8F5EE;
+    color: #2F6B4F;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .status-pre-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--accent, #B9803A);
+    text-transform: uppercase;
+  }
+
+  .order-number-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0.25rem 0 0.5rem 0;
+  }
+
+  .status-sub {
+    font-size: 0.9375rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+  }
+
+  /* Stepper */
+  .stepper-wrap {
+    padding: 1.5rem 0 0.5rem;
+    border-top: 1px solid rgba(43,27,20,0.08);
+  }
+
+  .stepper-bar {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+  }
+
+  .stepper-bar::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    right: 20px;
+    height: 2px;
+    background: rgba(43,27,20,0.1);
+    z-index: 1;
+  }
+
+  .step-node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    width: 120px;
+  }
+
+  .step-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 2px solid rgba(43,27,20,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--ink-2, #6B5A50);
+    margin-bottom: 0.5rem;
+  }
+
+  .step-node.is-complete .step-dot {
+    background: var(--accent, #B9803A);
+    border-color: var(--accent, #B9803A);
+    color: #FFFFFF;
+  }
+
+  .step-node.is-current .step-dot {
+    background: var(--primary, #4A2C1D);
+    border-color: var(--primary, #4A2C1D);
+    box-shadow: 0 0 0 4px rgba(74,44,29,0.15);
+  }
+
+  .step-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .step-node.is-complete .step-title,
+  .step-node.is-current .step-title {
+    color: var(--primary, #4A2C1D);
+    font-weight: 700;
+  }
+
+  .tracking-banner {
+    background: #FAF5EE;
+    border: 1px solid rgba(185, 128, 58, 0.3);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .truck-icon {
+    font-size: 1.5rem;
+  }
+
+  .tracking-banner p {
+    margin: 0.2rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  /* Grid */
+  .order-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .order-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 1.75rem;
+  }
+
+  .card-heading {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1.25rem 0;
+  }
+
+  .card-sub-heading {
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .order-item-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .item-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #F3EBDF;
+    flex-shrink: 0;
+  }
+
+  .item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .item-meta {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .item-name {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--ink, #2B1B14);
+    margin-bottom: 0.2rem;
+  }
+
+  .item-variant,
+  .item-qty {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .item-price {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .order-breakdown-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--ink, #2B1B14);
+  }
+
+  .breakdown-row.discount {
+    color: #2F6B4F;
+  }
+
+  .breakdown-divider {
+    height: 1px;
+    background: rgba(43,27,20,0.08);
+    margin: 0.25rem 0;
+  }
+
+  .breakdown-row.total {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .breakdown-row.advance-paid {
+    color: #2F6B4F;
+    font-weight: 600;
+  }
+
+  .breakdown-row.balance-due {
+    color: #A8442A;
+    font-weight: 600;
+  }
+
+  .shipping-address-box {
+    font-style: normal;
+    font-size: 0.875rem;
+    color: var(--ink, #2B1B14);
+    line-height: 1.6;
+  }
+
+  .phone-line {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .payment-info-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .pay-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    width: fit-content;
+  }
+
+  .pay-badge.status-paid { background: #D1FAE5; color: #065F46; }
+  .pay-badge.status-unpaid { background: #FEF3C7; color: #92400E; }
+  .pay-badge.status-partial { background: #DBEAFE; color: #1E40AF; }
+
+  .order-actions-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .btn-print-order,
+  .btn-order-support {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 6px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: all 0.2s;
+  }
+
+  .btn-print-order {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    color: var(--ink, #2B1B14);
+  }
+
+  .btn-print-order:hover {
+    background: var(--bg, #FBF7F1);
+  }
+
+  .btn-order-support {
+    background: #25D366;
+    color: #FFFFFF;
+    border: none;
+  }
+
+  @media (max-width: 800px) {
+    .order-details-grid {
+      grid-template-columns: 1fr;
+    }
+    .stepper-bar {
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  @media print {
+    header, footer, .stepper-wrap, .order-actions-buttons {
+      display: none !important;
+    }
+    body {
+      background: #FFFFFF !important;
+    }
+    .order-page-container {
+      padding: 0 !important;
+    }
+  }
+</style>

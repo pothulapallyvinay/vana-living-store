@@ -1,0 +1,312 @@
+---
+// src/pages/bulk-orders.astro
+import Base from '../layouts/Base.astro';
+import { site } from '../config/site';
+
+const whatsappUrl = `https://wa.me/${site.whatsapp}?text=Hello%20${encodeURIComponent(site.name)}%2C%20enquiring%20about%20corporate%20or%20bulk%20gifting%20orders`;
+---
+
+<Base title={`Bulk & Corporate Gifting Orders — ${site.name}`}>
+  <div class="site-container content-page-container">
+    <div class="content-header">
+      <span class="content-badge">CORPORATE & HOSPITALITY COMMISSIONS</span>
+      <h1 class="content-title">Bulk Gifting & Interior Commissions</h1>
+      <p class="content-lead">
+        Handcrafted 3D wooden clocks, mandalas, and lighting fixtures tailored for executive gifting, festive celebrations, luxury resorts, and architectural projects.
+      </p>
+    </div>
+
+    <div class="bulk-benefits-grid">
+      <div class="benefit-card">
+        <span class="b-icon">🪵</span>
+        <h3>Bespoke Laser Engraving</h3>
+        <p>Custom corporate logo engraving and commemorative inscriptions embedded directly into layered birch or walnut.</p>
+      </div>
+      <div class="benefit-card">
+        <span class="b-icon">🎁</span>
+        <h3>Luxury Gift Packaging</h3>
+        <p>Premium rigid gift boxes featuring brass foil stamping, velvet interior linings, and artisan certificate cards.</p>
+      </div>
+      <div class="benefit-card">
+        <span class="b-icon">🚚</span>
+        <h3>Pan-India Multi-City Dispatch</h3>
+        <p>Individual doorstep delivery directly to your clients, partners, or corporate branch offices nationwide.</p>
+      </div>
+    </div>
+
+    <div class="bulk-form-container">
+      <div class="form-wrapper">
+        <h2 class="form-heading">Request a Bulk Quote & Catalogue</h2>
+        <div id="bulk-alert" class="alert-box" style="display:none;" role="alert"></div>
+
+        <form id="bulk-form" class="bulk-form">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="company">Company / Organization Name *</label>
+              <input type="text" id="company" name="company" required placeholder="e.g. Apex Hospitality Group" />
+            </div>
+            <div class="form-group">
+              <label for="contact_person">Contact Person *</label>
+              <input type="text" id="contact_person" name="contact_person" required placeholder="e.g. Priya Nair" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="email">Work Email *</label>
+              <input type="email" id="email" name="email" required placeholder="priya@company.com" />
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone / WhatsApp *</label>
+              <input type="tel" id="phone" name="phone" required placeholder="9876543210" maxlength="10" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="quantity">Estimated Quantity (Units) *</label>
+              <select id="quantity" name="quantity" required>
+                <option value="10-25">10 – 25 pieces</option>
+                <option value="25-50">25 – 50 pieces</option>
+                <option value="50-100">50 – 100 pieces</option>
+                <option value="100+">100+ pieces</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="timeline">Required Delivery Timeline</label>
+              <input type="text" id="timeline" name="timeline" placeholder="e.g. Before Diwali / Within 3 weeks" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="requirements">Design & Customization Requirements</label>
+            <textarea id="requirements" name="requirements" rows="4" placeholder="Mention product categories (e.g. desk clocks, lotus night lights), target budget per piece, or custom logo requests..."></textarea>
+          </div>
+
+          <div class="form-actions-split">
+            <button type="submit" id="btn-bulk-submit" class="btn-bulk-submit">
+              <span>Submit Bulk Inquiry</span>
+            </button>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" class="btn-bulk-whatsapp">
+              <span>Instant WhatsApp Discussion &rarr;</span>
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .content-page-container {
+    padding-top: 3.5rem;
+    padding-bottom: 6rem;
+    max-width: 1100px;
+  }
+
+  .content-header {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 3.5rem;
+  }
+
+  .content-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent, #B9803A);
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .content-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.75rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1rem;
+    line-height: 1.15;
+  }
+
+  .content-lead {
+    font-size: 1.05rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .bulk-benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.75rem;
+    margin-bottom: 4rem;
+  }
+
+  .benefit-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 1.75rem;
+    text-align: center;
+  }
+
+  .b-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+  }
+
+  .benefit-card h3 {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.35rem;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.5rem;
+  }
+
+  .benefit-card p {
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  .bulk-form-container {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(43,27,20,0.06);
+  }
+
+  .form-heading {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.85rem;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1.5rem;
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink, #2B1B14);
+    margin-bottom: 0.4rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--ink, #2B1B14);
+    box-sizing: border-box;
+    outline: none;
+  }
+
+  .form-actions-split {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-bulk-submit {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    padding: 0.85rem 1.75rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .btn-bulk-whatsapp {
+    background: #25D366;
+    color: #FFFFFF;
+    padding: 0.85rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .alert-box {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  @media (max-width: 800px) {
+    .bulk-benefits-grid,
+    .form-row-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  const form = document.getElementById('bulk-form') as HTMLFormElement | null;
+  const alertBox = document.getElementById('bulk-alert');
+  const btn = document.getElementById('btn-bulk-submit') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form || !alertBox || !btn) return;
+    alertBox.style.display = 'none';
+
+    const formData = new FormData(form);
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: `${formData.get('contact_person')} (${formData.get('company')})`,
+          email: formData.get('email'),
+          phone: formData.get('phone'),
+          subject: `Bulk Order Quote (${formData.get('quantity')} units)`,
+          message: `Timeline: ${formData.get('timeline')}\n\nRequirements:\n${formData.get('requirements')}`,
+        }),
+      });
+
+      if (res.ok) {
+        alertBox.style.background = '#D1FAE5';
+        alertBox.style.color = '#065F46';
+        alertBox.textContent = 'Thank you! Your bulk order request has been submitted. Our commercial team will send a detailed quote.';
+        alertBox.style.display = 'block';
+        form.reset();
+      } else {
+        alertBox.style.background = '#FEE2E2';
+        alertBox.style.color = '#991B1B';
+        alertBox.textContent = 'Submission failed. Please contact us via WhatsApp.';
+        alertBox.style.display = 'block';
+      }
+    } catch {
+      alertBox.style.background = '#FEE2E2';
+      alertBox.style.color = '#991B1B';
+      alertBox.textContent = 'Network communication error.';
+      alertBox.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Bulk Inquiry';
+    }
+  });
+</script>

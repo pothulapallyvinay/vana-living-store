@@ -1,0 +1,284 @@
+---
+// src/pages/register.astro
+// Centered registration card (max 460px)
+import Base from '../layouts/Base.astro';
+import { site } from '../config/site';
+
+const user = (Astro.locals as any).user;
+const redirectParam = Astro.url.searchParams.get('redirect') || '/account';
+
+if (user) {
+  return Astro.redirect(redirectParam);
+}
+---
+
+<Base title={`Create an Account — ${site.name}`}>
+  <div class="auth-page-wrapper">
+    <div class="auth-card">
+      <div class="auth-card-header">
+        <span class="auth-logo-mark">⚜</span>
+        <h1 class="auth-title">Create an Account</h1>
+        <p class="auth-subtitle">Join the guild for saved addresses, express checkout, and preview drop access.</p>
+      </div>
+
+      <div id="register-alert" class="auth-alert" style="display:none;" role="alert"></div>
+
+      {redirectParam && redirectParam !== '/account' && (
+        <div class="auth-wishlist-notice">
+          <span class="notice-heart">❤️</span>
+          <span>Create an account to save pieces to your wishlist and access your personal collection.</span>
+        </div>
+      )}
+
+      <form id="register-form" class="auth-form" novalidate>
+        <input type="hidden" name="redirect" value={redirectParam} />
+        <div class="form-row-2">
+          <div class="form-group">
+            <label for="first_name">First Name *</label>
+            <input type="text" id="first_name" name="first_name" required autocomplete="given-name" />
+          </div>
+          <div class="form-group">
+            <label for="last_name">Last Name *</label>
+            <input type="text" id="last_name" name="last_name" required autocomplete="family-name" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" name="email" required autocomplete="email" placeholder="you@example.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number (10 digits, optional)</label>
+          <input type="tel" id="phone" name="phone" placeholder="9876543210" maxlength="10" autocomplete="tel-national" />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password (minimum 8 characters) *</label>
+          <input type="password" id="password" name="password" minlength="8" required autocomplete="new-password" placeholder="••••••••" />
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Confirm Password *</label>
+          <input type="password" id="confirm_password" name="confirm_password" minlength="8" required autocomplete="new-password" placeholder="••••••••" />
+        </div>
+
+        <button type="submit" id="btn-register-submit" class="btn-auth-submit">
+          <span>Create My Account</span>
+        </button>
+      </form>
+
+      <div class="auth-card-footer">
+        <p>Already have an account? <a href={`/login${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`}>Sign In</a></p>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .auth-page-wrapper {
+    min-height: calc(100vh - 280px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+    background: linear-gradient(135deg, #FBF7F1 0%, #F5ECDF 100%);
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 480px;
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(43, 27, 20, 0.08);
+  }
+
+  .auth-card-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .auth-logo-mark {
+    font-size: 2rem;
+    color: var(--accent, #B9803A);
+    display: inline-block;
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .auth-subtitle {
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .auth-alert {
+    background: #FEE2E2;
+    border: 1px solid #FCA5A5;
+    color: #991B1B;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.84rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink, #2B1B14);
+    margin-bottom: 0.35rem;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--ink, #2B1B14);
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus {
+    border-color: var(--accent, #B9803A);
+    box-shadow: 0 0 0 3px rgba(185, 128, 58, 0.15);
+  }
+
+  .btn-auth-submit {
+    width: 100%;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-auth-submit:hover {
+    background: #3A2013;
+  }
+
+  .auth-card-footer {
+    text-align: center;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(43,27,20,0.08);
+    font-size: 0.84rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .auth-wishlist-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #FFF5F5;
+    border: 1px solid #FECACA;
+    color: #991B1B;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    line-height: 1.4;
+  }
+  .notice-heart {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .auth-card-footer a {
+    color: var(--accent, #B9803A);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .auth-card-footer a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<script>
+  const form = document.getElementById('register-form') as HTMLFormElement | null;
+  const alertBox = document.getElementById('register-alert');
+  const btn = document.getElementById('btn-register-submit') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form || !alertBox || !btn) return;
+    alertBox.style.display = 'none';
+
+    const formData = new FormData(form);
+    const firstName = formData.get('first_name');
+    const lastName = formData.get('last_name');
+    const email = formData.get('email');
+    const phone = formData.get('phone');
+    const password = formData.get('password');
+    const confirmPw = formData.get('confirm_password');
+    const redirectUrl = formData.get('redirect') as string || '/account';
+
+    if (password !== confirmPw) {
+      alertBox.textContent = 'Passwords do not match.';
+      alertBox.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Creating Account...';
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          email,
+          phone,
+          password,
+          redirect: redirectUrl,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = data.redirect || redirectUrl;
+      } else {
+        alertBox.textContent = data.error || 'Registration failed.';
+        alertBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Create My Account';
+      }
+    } catch {
+      alertBox.textContent = 'Network communication error.';
+      alertBox.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Create My Account';
+    }
+  });
+</script>

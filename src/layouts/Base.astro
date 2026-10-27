@@ -1,0 +1,316 @@
+---
+// src/layouts/Base.astro
+// Main layout: SEO head, announcement bar, header, footer
+import { site, seo } from '../config/site';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import AnnouncementBar from '../components/AnnouncementBar.astro';
+import '../styles/global.css';
+
+export interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  ogImage?: string;
+  noIndex?: boolean;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  user?: { id: number; first_name: string; last_name: string; role: string } | null;
+  cartCount?: number;
+}
+
+const {
+  title = seo.defaultTitle,
+  description = seo.defaultDescription,
+  canonical,
+  ogImage,
+  noIndex = false,
+  jsonLd,
+  user = null,
+  cartCount = 0,
+} = Astro.props;
+
+const canonicalUrl = canonical ?? `${site.url}${Astro.url.pathname}`;
+const ogImageUrl = ogImage ?? `${site.url}/og-default.jpg`;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#4A2C1D" />
+
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonicalUrl} />
+  {noIndex && <meta name="robots" content="noindex,nofollow" />}
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:image" content={ogImageUrl} />
+  <meta property="og:site_name" content={site.name} />
+  <meta property="og:locale" content="en_IN" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImageUrl} />
+  {seo.twitterHandle && <meta name="twitter:site" content={seo.twitterHandle} />}
+
+  <!-- Preconnect for Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+
+  <!-- JSON-LD Structured Data -->
+  {jsonLd && (
+    <script type="application/ld+json" set:html={JSON.stringify(Array.isArray(jsonLd) ? jsonLd : [jsonLd])} />
+  )}
+
+  <!-- Cloudflare Web Analytics (cookieless) -->
+  <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "[CF_ANALYTICS_TOKEN]"}'></script>
+</head>
+<body>
+  <a href="#main-content" class="sr-only">Skip to main content</a>
+
+  <AnnouncementBar />
+
+  <Header user={user} cartCount={cartCount} />
+
+  <main id="main-content" tabindex="-1">
+    <slot />
+  </main>
+
+  <Footer />
+
+  <!-- Cart Drawer (always in DOM for JS updates) -->
+  <div id="cart-overlay" class="cart-overlay" aria-hidden="true"></div>
+  <aside id="cart-drawer" class="cart-drawer" role="dialog" aria-modal="true" aria-label="Shopping cart">
+    <div class="cart-drawer__header">
+      <h2 class="cart-drawer__title">Your Cart</h2>
+      <button id="cart-close" class="header-icon-btn" aria-label="Close cart">✕</button>
+    </div>
+    <div class="cart-drawer__body" id="cart-drawer-body">
+      <p style="color:var(--ink-2);text-align:center;padding:2rem">Loading...</p>
+    </div>
+    <div class="cart-drawer__footer" id="cart-drawer-footer"></div>
+  </aside>
+
+  <!-- Quick View Modal -->
+  <div id="quick-view-overlay" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Quick view">
+    <div class="modal" id="quick-view-modal"></div>
+  </div>
+
+  <script>
+    // ── Cart badge update ──────────────────────────────────────
+    function updateCartBadge() {
+      try {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const count = cart.reduce((sum: number, item: { qty: number }) => sum + (item.qty || 0), 0);
+        const badge = document.querySelector('.cart-badge') as HTMLElement | null;
+        if (badge) {
+          badge.setAttribute('data-count', String(count));
+          badge.textContent = String(count);
+        }
+      } catch {}
+    }
+    updateCartBadge();
+
+    // ── Cart drawer toggle ─────────────────────────────────────
+    const cartBtn = document.getElementById('cart-btn');
+    const cartDrawer = document.getElementById('cart-drawer');
+    const cartOverlay = document.getElementById('cart-overlay');
+    const cartClose = document.getElementById('cart-close');
+
+    function openCart() {
+      cartDrawer?.classList.add('is-open');
+      cartOverlay?.classList.add('is-open');
+      cartOverlay?.removeAttribute('aria-hidden');
+      renderCartDrawer();
+    }
+    function closeCart() {
+      cartDrawer?.classList.remove('is-open');
+      cartOverlay?.classList.remove('is-open');
+      cartOverlay?.setAttribute('aria-hidden', 'true');
+    }
+
+    cartBtn?.addEventListener('click', openCart);
+    cartClose?.addEventListener('click', closeCart);
+    cartOverlay?.addEventListener('click', closeCart);
+
+    // ── Announcement bar dismiss ───────────────────────────────
+    const annClose = document.getElementById('ann-close');
+    const annBar = document.getElementById('announcement-bar');
+    annClose?.addEventListener('click', () => {
+      annBar?.remove();
+      sessionStorage.setItem('ann-dismissed', '1');
+    });
+    if (sessionStorage.getItem('ann-dismissed')) annBar?.remove();
+
+    // ── Scroll animations (IntersectionObserver) ───────────────
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            (entry.target as HTMLElement).classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el));
+
+    // ── Quick view modal ───────────────────────────────────────
+    const qvOverlay = document.getElementById('quick-view-overlay');
+    qvOverlay?.addEventListener('click', (e) => {
+      if (e.target === qvOverlay) qvOverlay.classList.remove('is-open');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        qvOverlay?.classList.remove('is-open');
+        closeCart();
+      }
+    });
+
+    // ── Cart rendering ─────────────────────────────────────────
+    async function renderCartDrawer() {
+      const body = document.getElementById('cart-drawer-body');
+      const footer = document.getElementById('cart-drawer-footer');
+      if (!body) return;
+
+      try {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        if (!cart.length) {
+          body.innerHTML = `
+            <div class="empty-state" style="padding:3rem 1rem">
+              <div class="empty-state__icon">🛒</div>
+              <h3>Your cart is empty</h3>
+              <p>Add some beautiful handcrafted pieces to your cart.</p>
+              <a href="/collections/all" class="btn btn-primary btn-sm">Start Shopping</a>
+            </div>`;
+          if (footer) footer.innerHTML = '';
+          return;
+        }
+
+        body.innerHTML = '<p style="color:var(--ink-2);text-align:center;padding:2rem">Calculating prices...</p>';
+
+        const res = await fetch('/api/cart/price', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: cart }),
+        });
+
+        if (!res.ok) throw new Error();
+        const data = await res.json() as {
+          lines: Array<{
+            variant_id: number;
+            product_name: string;
+            variant_label: string;
+            image_path: string | null;
+            unit_price_paise: number;
+            qty: number;
+            line_total_paise: number;
+            slug: string;
+          }>;
+          subtotal_paise: number;
+          shipping_paise: number;
+          discount_paise: number;
+          total_paise: number;
+          free_shipping: boolean;
+        };
+
+        const fmt = (p: number) => '₹' + Math.floor(p/100).toLocaleString('en-IN');
+
+        body.innerHTML = data.lines.map(line => `
+          <div class="cart-line" data-variant="${line.variant_id}" style="display:flex;gap:.75rem;padding:.75rem 0;border-bottom:1px solid var(--border)">
+            ${line.image_path
+              ? `<img src="/media/${line.image_path}" alt="${line.product_name}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0">`
+              : `<div style="width:72px;height:72px;background:var(--surface-2);border-radius:8px;flex-shrink:0"></div>`}
+            <div style="flex:1;min-width:0">
+              <p style="font-size:.85rem;font-weight:500;line-height:1.3;margin-bottom:.25rem">${line.product_name}</p>
+              <p style="font-size:.75rem;color:var(--ink-2)">${line.variant_label}</p>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-top:.5rem">
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <button onclick="updateQty(${line.variant_id},-1)" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);border-radius:4px;font-size:.9rem;cursor:pointer">−</button>
+                  <span style="font-size:.85rem;min-width:1.5rem;text-align:center">${line.qty}</span>
+                  <button onclick="updateQty(${line.variant_id},1)" style="width:1.5rem;height:1.5rem;border:1px solid var(--border);border-radius:4px;font-size:.9rem;cursor:pointer">+</button>
+                </div>
+                <span style="font-weight:600;font-size:.9rem">${fmt(line.line_total_paise)}</span>
+                <button onclick="removeFromCart(${line.variant_id})" style="color:var(--ink-3);font-size:1rem;cursor:pointer;padding:.25rem" aria-label="Remove ${line.product_name}">×</button>
+              </div>
+            </div>
+          </div>`).join('');
+
+        if (footer) footer.innerHTML = `
+          <div style="space-y:0.5rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.4rem;font-size:.875rem">
+              <span>Subtotal</span><span>${fmt(data.subtotal_paise)}</span>
+            </div>
+            ${data.discount_paise > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:.4rem;font-size:.875rem;color:var(--success)"><span>Discount</span><span>−${fmt(data.discount_paise)}</span></div>` : ''}
+            <div style="display:flex;justify-content:space-between;margin-bottom:.75rem;font-size:.875rem">
+              <span>Shipping</span><span>${data.free_shipping ? '<span style="color:var(--success)">FREE</span>' : fmt(data.shipping_paise)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1rem;border-top:1px solid var(--border);padding-top:.75rem;margin-bottom:1rem">
+              <span>Total</span><span>${fmt(data.total_paise)}</span>
+            </div>
+            <a href="/checkout" class="btn btn-primary btn-block">Proceed to Checkout →</a>
+            <a href="/cart" class="btn btn-ghost btn-block" style="margin-top:.5rem">View Full Cart</a>
+          </div>`;
+
+      } catch {
+        body.innerHTML = '<p style="color:var(--sale);text-align:center;padding:2rem">Failed to load cart. Please try again.</p>';
+      }
+    }
+
+    // ── Cart helpers (global) ──────────────────────────────────
+    (window as Window & { updateQty: (vid: number, delta: number) => void; removeFromCart: (vid: number) => void }).updateQty = function(vid: number, delta: number) {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]') as Array<{variant_id: number; qty: number}>;
+      const idx = cart.findIndex(i => i.variant_id === vid);
+      if (idx < 0) return;
+      cart[idx].qty = Math.max(1, Math.min(99, cart[idx].qty + delta));
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartBadge();
+      renderCartDrawer();
+    };
+
+    (window as Window & { removeFromCart: (vid: number) => void }).removeFromCart = function(vid: number) {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]') as Array<{variant_id: number}>;
+      const updated = cart.filter(i => i.variant_id !== vid);
+      localStorage.setItem('cart', JSON.stringify(updated));
+      updateCartBadge();
+      renderCartDrawer();
+    };
+
+    // Add to cart (dispatched from product pages/cards)
+    window.addEventListener('add-to-cart', ((e: CustomEvent) => {
+      const { variant_id, qty = 1 } = e.detail as { variant_id: number; qty?: number };
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]') as Array<{variant_id: number; qty: number}>;
+      const existing = cart.find(i => i.variant_id === variant_id);
+      if (existing) {
+        existing.qty = Math.min(99, existing.qty + qty);
+      } else {
+        cart.push({ variant_id, qty });
+      }
+      localStorage.setItem('cart', JSON.stringify(cart));
+      updateCartBadge();
+      openCart();
+    }) as EventListener);
+
+    // Mega menu
+    document.querySelectorAll('.has-mega-menu').forEach(trigger => {
+      const menu = trigger.querySelector('.mega-menu');
+      trigger.addEventListener('mouseenter', () => menu?.classList.add('is-open'));
+      trigger.addEventListener('mouseleave', () => menu?.classList.remove('is-open'));
+    });
+  </script>
+</body>
+</html>

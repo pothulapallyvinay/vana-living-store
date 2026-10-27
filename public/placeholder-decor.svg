@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <rect width="400" height="400" fill="#F3EBDF"/>
+  <circle cx="200" cy="200" r="120" fill="none" stroke="#B9803A" stroke-width="2" stroke-dasharray="6,4"/>
+  <circle cx="200" cy="200" r="80" fill="none" stroke="#4A2C1D" stroke-width="2"/>
+  <circle cx="200" cy="200" r="40" fill="none" stroke="#B9803A" stroke-width="1.5"/>
+  <text x="200" y="205" text-anchor="middle" font-family="serif" font-size="14" fill="#6B5A50" letter-spacing="2">ARTISAN DECOR</text>
+</svg>

@@ -1,0 +1,1223 @@
+---
+// src/pages/admin/products.astro
+// Product catalog management, inline pricing edits, product creation modal, and CSV bulk import/export
+import Admin from '../../layouts/Admin.astro';
+import { getDB, all } from '../../lib/db';
+import { formatPrice } from '../../lib/format';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+let products: any[] = [];
+let categories: any[] = [];
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    products = await all(db, `
+      SELECT p.id, p.slug, p.name, p.short_description, p.badge, p.brand_line, p.is_active,
+        v.id as variant_id, v.sku, v.size_label, v.price_paise, v.compare_at_paise, v.stock,
+        m.path as primary_image
+      FROM products p
+      LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1
+      LEFT JOIN product_media m ON m.product_id = p.id AND m.is_primary = 1
+      ORDER BY p.id ASC
+    `);
+
+    categories = await all(db, `
+      SELECT id, name, slug FROM categories ORDER BY sort_order ASC, name ASC
+    `);
+  } catch (err) {
+    console.error('Error fetching admin products:', err);
+  }
+}
+
+const totalProducts = products.length;
+const activeCount = products.filter(p => p.is_active === 1).length;
+const inStockCount = products.filter(p => (p.stock || 0) > 0).length;
+const lowStockCount = products.filter(p => (p.stock || 0) > 0 && (p.stock || 0) < 5).length;
+---
+
+<Admin title="Products & Media Management" activeNav="products">
+  <!-- Stats Header Strip -->
+  <div class="stats-strip">
+    <div class="stat-pill">
+      <span class="stat-pill-label">Total Catalog</span>
+      <strong class="stat-pill-val">{totalProducts}</strong>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-pill-label">Active Listed</span>
+      <strong class="stat-pill-val" style="color:#065F46;">{activeCount}</strong>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-pill-label">In Stock</span>
+      <strong class="stat-pill-val">{inStockCount}</strong>
+    </div>
+    {lowStockCount > 0 && (
+      <div class="stat-pill" style="border-left: 3px solid #D97706;">
+        <span class="stat-pill-label">Low Stock (&lt;5)</span>
+        <strong class="stat-pill-val" style="color:#D97706;">{lowStockCount}</strong>
+      </div>
+    )}
+  </div>
+
+  <div class="admin-card">
+    <!-- Top Action Toolbar -->
+    <div class="catalog-toolbar">
+      <div>
+        <h2 class="catalog-title">Catalog ({totalProducts} Products)</h2>
+        <span class="catalog-subtitle">Click on titles, dimensions, prices, or stock to edit inline. Changes save server-side to Cloudflare D1.</span>
+      </div>
+
+      <div class="catalog-actions">
+        <button type="button" id="btn-open-add-modal" class="admin-btn admin-btn--accent" style="font-weight:600;display:inline-flex;align-items:center;gap:0.4rem;">
+          <span>➕ Add New Product</span>
+        </button>
+        <a href="/api/admin/bulk-import" download class="admin-btn admin-btn--outline" style="display:inline-flex;align-items:center;gap:0.4rem;">
+          <span>📥 Export CSV</span>
+        </a>
+        <label class="admin-btn admin-btn--outline" style="cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem;">
+          <span>📤 Import CSV</span>
+          <input type="file" id="csv-upload-input" accept=".csv" style="display:none;" />
+        </label>
+      </div>
+    </div>
+
+    <!-- Search & Filter Bar -->
+    <div class="table-search-bar">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input
+          type="text"
+          id="product-table-search"
+          placeholder="Filter by product name, ID (e.g. P01), or SKU..."
+          class="admin-search-field"
+        />
+      </div>
+      <div id="filter-result-count" class="filter-count">Showing {totalProducts} items</div>
+    </div>
+
+    <!-- Alert / Notification Ribbon -->
+    <div id="product-update-alert" class="admin-alert-banner" style="display:none;"></div>
+
+    <!-- Products Table -->
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="products-table">
+        <thead>
+          <tr>
+            <th style="width: 56px;">Media</th>
+            <th style="min-width: 260px;">Product Name &amp; ID</th>
+            <th style="width: 140px;">Dimensions</th>
+            <th style="width: 110px;">Price (₹)</th>
+            <th style="width: 110px;">Compare (₹)</th>
+            <th style="width: 130px;">Stock Status</th>
+            <th style="width: 95px;">Badge</th>
+            <th style="width: 95px;">Status</th>
+            <th style="width: 135px; text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {products.map(p => {
+            const rawImg = p.primary_image || '';
+            const cleanImg = rawImg ? (rawImg.startsWith('/') ? rawImg : `/${rawImg}`) : '/placeholder-decor.svg';
+            const priceRupees = p.price_paise ? Math.floor(p.price_paise / 100) : '';
+            const compareRupees = p.compare_at_paise ? Math.floor(p.compare_at_paise / 100) : '';
+
+            return (
+              <tr data-prod-id={p.id} data-search-text={`${p.name} ${p.id} ${p.sku || ''} ${p.brand_line || ''}`.toLowerCase()}>
+                <!-- Media Thumbnail -->
+                <td>
+                  <div class="product-thumb-box" title={`Product ${p.id} visual`}>
+                    <img
+                      src={cleanImg}
+                      alt={p.name}
+                      loading="lazy"
+                      onerror="this.onerror=null;this.src='/placeholder-decor.svg';"
+                      class="product-thumb-img"
+                    />
+                  </div>
+                </td>
+
+                <!-- Name & ID -->
+                <td>
+                  <input
+                    type="text"
+                    class="inline-edit-input inline-edit-name"
+                    data-field="name"
+                    value={p.name}
+                    title="Click to edit product name"
+                  />
+                  <div class="prod-meta-tags">
+                    <span class="meta-tag meta-tag-id">{p.id}</span>
+                    <span class="meta-tag meta-tag-sku">{p.sku || 'NO-SKU'}</span>
+                    {p.brand_line && <span class="meta-tag meta-tag-brand">{p.brand_line}</span>}
+                  </div>
+                </td>
+
+                <!-- Dimensions -->
+                <td>
+                  <input
+                    type="text"
+                    class="inline-edit-input"
+                    data-field="size_label"
+                    value={p.size_label || ''}
+                    placeholder="e.g. 60cm × 60cm"
+                    style="width: 100%;"
+                  />
+                </td>
+
+                <!-- Price (₹) -->
+                <td>
+                  <div class="input-with-symbol">
+                    <span class="currency-sym">₹</span>
+                    <input
+                      type="number"
+                      class="inline-edit-input input-num"
+                      data-field="price_rupees"
+                      value={priceRupees}
+                      placeholder="On request"
+                      min="0"
+                    />
+                  </div>
+                </td>
+
+                <!-- Compare At (₹) -->
+                <td>
+                  <div class="input-with-symbol">
+                    <span class="currency-sym">₹</span>
+                    <input
+                      type="number"
+                      class="inline-edit-input input-num"
+                      data-field="compare_rupees"
+                      value={compareRupees}
+                      placeholder="None"
+                      min="0"
+                    />
+                  </div>
+                </td>
+
+                <!-- Stock Column with Number & In/Out Stock Quick-Toggle -->
+                <td style="min-width: 125px;">
+                  <div class="stock-editor-cell">
+                    <input
+                      type="number"
+                      class={`inline-edit-input input-num stock-number-input ${p.stock < 5 ? 'stock-low-input' : ''}`}
+                      data-field="stock"
+                      value={p.stock ?? 0}
+                      min="0"
+                      title="Direct stock quantity"
+                    />
+                    <button
+                      type="button"
+                      class={`btn-stock-toggle ${p.stock > 0 ? 'stock-toggle--in' : 'stock-toggle--out'}`}
+                      data-action="toggle-stock"
+                      title="Click to toggle In Stock / Out of Stock"
+                    >
+                      <span class="stock-dot-indicator"></span>
+                      <span class="stock-state-text">{p.stock > 0 ? 'In Stock' : 'Out of Stock'}</span>
+                    </button>
+                  </div>
+                </td>
+
+                <!-- Badge -->
+                <td>
+                  <select class="inline-select" data-field="badge" style="width: 100%;">
+                    <option value="" selected={!p.badge}>None</option>
+                    <option value="HOT" selected={p.badge === 'HOT'}>HOT</option>
+                    <option value="NEW" selected={p.badge === 'NEW'}>NEW</option>
+                    <option value="SALE" selected={p.badge === 'SALE'}>SALE</option>
+                  </select>
+                </td>
+
+                <!-- Status (Active / Hidden) -->
+                <td>
+                  <button
+                    type="button"
+                    class="btn-toggle-active"
+                    data-active={p.is_active ? '1' : '0'}
+                    title="Click to toggle listing visibility"
+                  >
+                    <span class={`status-dot ${p.is_active ? 'is-active-dot' : 'is-hidden-dot'}`}></span>
+                    <span class="status-label">{p.is_active ? 'ACTIVE' : 'HIDDEN'}</span>
+                  </button>
+                </td>
+
+                <!-- Actions -->
+                <td style="text-align:right;">
+                  <div class="action-btn-group">
+                    <button type="button" class="admin-btn admin-btn--primary btn-save-row" title="Save changes for this product">
+                      Save
+                    </button>
+                    <a href={`/products/${p.slug}`} target="_blank" rel="noopener" class="admin-btn admin-btn--outline btn-view-link" title="Open public product page">
+                      View
+                    </a>
+                    <button type="button" class="btn-delete-row" title="Delete product from store">
+                      🗑
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: ADD NEW HANDCRAFTED PRODUCT                      -->
+  <!-- ======================================================== -->
+  <div id="add-product-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-add-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-add-title" class="modal-title">➕ Add New Handcrafted Product</h3>
+          <p class="modal-desc">Create a new artisan piece in your Cloudflare D1 catalog.</p>
+        </div>
+        <button type="button" id="btn-close-modal" class="modal-close-btn" aria-label="Close modal">✕</button>
+      </div>
+
+      <form id="add-product-form" class="modal-form">
+        <div id="modal-alert-box" class="admin-alert-banner" style="display:none;margin-bottom:1rem;"></div>
+
+        <!-- Row 1: Name and ID -->
+        <div class="form-row">
+          <div class="form-field form-field--flex2">
+            <label for="add-name">Product Name <span class="req-star">*</span></label>
+            <input type="text" id="add-name" name="name" required placeholder="e.g. 3D Layered Lotus Mandala Wall Clock" class="modal-input" />
+          </div>
+          <div class="form-field form-field--flex1">
+            <label for="add-id">Product ID <span class="opt-label">(Auto if blank)</span></label>
+            <input type="text" id="add-id" name="id" placeholder="e.g. P33" class="modal-input" />
+          </div>
+        </div>
+
+        <!-- Row 2: Category & Brand Line -->
+        <div class="form-row">
+          <div class="form-field form-field--flex1">
+            <label for="add-category">Category</label>
+            <select id="add-category" name="category_id" class="modal-input">
+              <option value="">Select a Category...</option>
+              {categories.map(c => (
+                <option value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div class="form-field form-field--flex1">
+            <label for="add-brand">Brand Line</label>
+            <input type="text" id="add-brand" name="brand_line" placeholder="e.g. MATRA HAUS, Vana Living" class="modal-input" />
+          </div>
+        </div>
+
+        <!-- Row 3: Dimensions, Price, Compare At, Stock -->
+        <div class="form-row">
+          <div class="form-field form-field--flex1">
+            <label for="add-size">Dimensions</label>
+            <input type="text" id="add-size" name="size_label" placeholder="e.g. 50cm × 50cm" class="modal-input" />
+          </div>
+          <div class="form-field form-field--flex1">
+            <label for="add-price">Price (₹) <span class="opt-label">(Blank = On request)</span></label>
+            <input type="number" id="add-price" name="price_rupees" placeholder="e.g. 3999" min="0" class="modal-input" />
+          </div>
+          <div class="form-field form-field--flex1">
+            <label for="add-compare">Compare At (₹)</label>
+            <input type="number" id="add-compare" name="compare_rupees" placeholder="e.g. 4999" min="0" class="modal-input" />
+          </div>
+          <div class="form-field form-field--flex1">
+            <label for="add-stock">Initial Stock</label>
+            <input type="number" id="add-stock" name="stock" value="15" min="0" class="modal-input" />
+            <select id="modal-stock-preset" class="modal-input" style="margin-top:0.35rem;font-size:0.75rem;padding:0.25rem 0.5rem;">
+              <option value="15">Preset: In Stock (15)</option>
+              <option value="0">Preset: Out of Stock (0)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 4: Badge & Primary Image -->
+        <div class="form-row">
+          <div class="form-field form-field--flex1">
+            <label for="add-badge">Promotional Badge</label>
+            <select id="add-badge" name="badge" class="modal-input">
+              <option value="">None</option>
+              <option value="NEW" selected>NEW</option>
+              <option value="HOT">HOT</option>
+              <option value="SALE">SALE</option>
+            </select>
+          </div>
+          <div class="form-field form-field--flex2">
+            <label for="add-image">Primary Media Path</label>
+            <input type="text" id="add-image" name="primary_image" placeholder="e.g. /media/products/P01/1.svg or /placeholder-decor.svg" value="/placeholder-decor.svg" class="modal-input" />
+          </div>
+        </div>
+
+        <!-- Row 5: Short Description -->
+        <div class="form-field">
+          <label for="add-desc">Short Description</label>
+          <textarea id="add-desc" name="short_description" rows="2" placeholder="Brief summary of artisanal materials, timber layers, finish, and lighting..." class="modal-input modal-textarea"></textarea>
+        </div>
+
+        <!-- Modal Actions -->
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-modal" class="admin-btn admin-btn--outline">
+            Cancel
+          </button>
+          <button type="submit" id="btn-submit-add" class="admin-btn admin-btn--accent" style="font-weight:600;min-width:140px;">
+            Create Product
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Admin>
+
+<style>
+  /* Stats Strip */
+  .stats-strip {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .stat-pill {
+    background: #FFFFFF;
+    border: 1px solid var(--admin-border, rgba(43,27,20,0.1));
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 140px;
+    box-shadow: 0 1px 3px rgba(43,27,20,0.03);
+  }
+  .stat-pill-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--admin-ink-muted, #6B5A50);
+  }
+  .stat-pill-val {
+    font-size: 1.35rem;
+    font-family: var(--admin-font-head, Georgia);
+    color: var(--admin-primary, #4A2C1D);
+    line-height: 1.2;
+    margin-top: 0.15rem;
+  }
+
+  /* Catalog Toolbar */
+  .catalog-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .catalog-title {
+    font-family: var(--admin-font-head, Georgia);
+    font-size: 1.55rem;
+    color: var(--admin-primary, #4A2C1D);
+    margin: 0 0 0.25rem 0;
+  }
+  .catalog-subtitle {
+    font-size: 0.8125rem;
+    color: var(--admin-ink-muted, #6B5A50);
+  }
+  .catalog-actions {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+  }
+
+  /* Search Bar */
+  .table-search-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .search-input-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 440px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.85rem;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .admin-search-field {
+    width: 100%;
+    padding: 0.5rem 0.75rem 0.5rem 2.2rem;
+    border: 1px solid var(--admin-border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    font-size: 0.84rem;
+    background: #FFFFFF;
+    color: var(--admin-ink, #2B1B14);
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .admin-search-field:focus {
+    border-color: var(--admin-accent, #B9803A);
+  }
+  .filter-count {
+    font-size: 0.8rem;
+    color: var(--admin-ink-muted, #6B5A50);
+    font-weight: 500;
+  }
+
+  /* Alert Banner */
+  .admin-alert-banner {
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  /* Table & Inputs */
+  .product-thumb-box {
+    width: 46px;
+    height: 46px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #F3EBDF;
+    border: 1px solid rgba(43,27,20,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+  .product-thumb-box:hover {
+    transform: scale(1.15);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(43,27,20,0.15);
+  }
+  .product-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .inline-edit-input,
+  .inline-select {
+    padding: 0.35rem 0.5rem;
+    border: 1px solid var(--admin-border, rgba(43,27,20,0.15));
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    color: var(--admin-ink, #2B1B14);
+    background: #FFFFFF;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .inline-edit-input:focus,
+  .inline-select:focus {
+    border-color: var(--admin-accent, #B9803A);
+    box-shadow: 0 0 0 2px rgba(185,128,58,0.15);
+  }
+  .inline-edit-name {
+    width: 100%;
+    font-weight: 600;
+    color: var(--admin-primary, #4A2C1D);
+    background: transparent;
+    border-color: transparent;
+    padding-left: 0;
+  }
+  .inline-edit-name:hover,
+  .inline-edit-name:focus {
+    background: #FFFFFF;
+    border-color: var(--admin-border, rgba(43,27,20,0.15));
+    padding-left: 0.4rem;
+  }
+
+  .prod-meta-tags {
+    display: flex;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+  }
+  .meta-tag {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+  .meta-tag-id {
+    background: rgba(74,44,29,0.08);
+    color: var(--admin-primary, #4A2C1D);
+    font-weight: 700;
+  }
+  .meta-tag-sku {
+    background: rgba(107,90,80,0.08);
+    color: var(--admin-ink-muted, #6B5A50);
+  }
+  .meta-tag-brand {
+    background: rgba(185,128,58,0.12);
+    color: #925C1B;
+    font-weight: 600;
+  }
+
+  .input-with-symbol {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .currency-sym {
+    position: absolute;
+    left: 0.45rem;
+    font-size: 0.75rem;
+    color: var(--admin-ink-muted, #6B5A50);
+    pointer-events: none;
+  }
+  .input-with-symbol .input-num {
+    padding-left: 1.15rem;
+    width: 100%;
+  }
+
+  .stock-low-input {
+    border-color: #F59E0B !important;
+    color: #B45309 !important;
+    font-weight: 700;
+  }
+
+  .stock-editor-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .btn-stock-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .stock-toggle--in {
+    background: #D1FAE5;
+    color: #065F46;
+  }
+  .stock-toggle--in:hover {
+    background: #A7F3D0;
+  }
+  .stock-toggle--in .stock-dot-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10B981;
+  }
+  .stock-toggle--out {
+    background: #FEE2E2;
+    color: #991B1B;
+  }
+  .stock-toggle--out:hover {
+    background: #FECACA;
+  }
+  .stock-toggle--out .stock-dot-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #EF4444;
+  }
+
+  /* Active / Hidden Toggle Button */
+  .btn-toggle-active {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.6rem;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+  .btn-toggle-active:hover {
+    background: rgba(43,27,20,0.05);
+    border-color: var(--admin-border, rgba(43,27,20,0.15));
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .is-active-dot {
+    background: #10B981;
+    box-shadow: 0 0 0 2px rgba(16,185,129,0.2);
+  }
+  .is-hidden-dot {
+    background: #EF4444;
+    box-shadow: 0 0 0 2px rgba(239,68,68,0.2);
+  }
+  .status-label {
+    letter-spacing: 0.04em;
+  }
+
+  /* Action Buttons */
+  .action-btn-group {
+    display: flex;
+    gap: 0.35rem;
+    justify-content: flex-end;
+    align-items: center;
+  }
+  .btn-save-row {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 52px;
+    text-align: center;
+  }
+  .btn-view-link {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.75rem;
+    text-decoration: none;
+  }
+  .btn-delete-row {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 0.3rem 0.45rem;
+    font-size: 0.85rem;
+    color: #9CA3AF;
+    transition: all 0.2s;
+  }
+  .btn-delete-row:hover {
+    color: #DC2626;
+    background: #FEE2E2;
+    border-color: #FCA5A5;
+  }
+
+  /* Modal Overlay & Card */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(20, 12, 8, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+  .modal-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 680px;
+    padding: 2rem;
+    box-shadow: 0 20px 40px rgba(43,27,20,0.25);
+    border: 1px solid rgba(43,27,20,0.1);
+    animation: modalSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+  }
+  .modal-title {
+    font-family: var(--admin-font-head, Georgia);
+    font-size: 1.45rem;
+    color: var(--admin-primary, #4A2C1D);
+    margin: 0 0 0.25rem 0;
+  }
+  .modal-desc {
+    font-size: 0.82rem;
+    color: var(--admin-ink-muted, #6B5A50);
+    margin: 0;
+  }
+  .modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: var(--admin-ink-muted, #6B5A50);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    line-height: 1;
+  }
+  .modal-close-btn:hover {
+    background: rgba(43,27,20,0.06);
+    color: var(--admin-ink, #2B1B14);
+  }
+
+  .form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+  }
+  .form-field--flex1 { flex: 1; min-width: 140px; margin-bottom: 0; }
+  .form-field--flex2 { flex: 2; min-width: 200px; margin-bottom: 0; }
+  .form-field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--admin-ink, #2B1B14);
+  }
+  .req-star { color: #DC2626; }
+  .opt-label { font-size: 0.72rem; color: var(--admin-ink-muted, #6B5A50); font-weight: normal; }
+
+  .modal-input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--admin-border, rgba(43,27,20,0.18));
+    border-radius: 6px;
+    font-size: 0.86rem;
+    color: var(--admin-ink, #2B1B14);
+    background: #FFFFFF;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .modal-input:focus {
+    border-color: var(--admin-accent, #B9803A);
+    box-shadow: 0 0 0 3px rgba(185,128,58,0.15);
+  }
+  .modal-textarea {
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(43,27,20,0.08);
+  }
+</style>
+
+<script>
+  // ========================================================
+  // 1. INLINE SAVE HANDLER
+  // ========================================================
+  document.querySelectorAll('.btn-save-row').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      if (!row) return;
+      const id = row.getAttribute('data-prod-id');
+      const name = (row.querySelector('[data-field="name"]') as HTMLInputElement)?.value;
+      const sizeLabel = (row.querySelector('[data-field="size_label"]') as HTMLInputElement)?.value;
+      const priceRupees = (row.querySelector('[data-field="price_rupees"]') as HTMLInputElement)?.value;
+      const compareRupees = (row.querySelector('[data-field="compare_rupees"]') as HTMLInputElement)?.value;
+      const stock = (row.querySelector('[data-field="stock"]') as HTMLInputElement)?.value;
+      const badge = (row.querySelector('[data-field="badge"]') as HTMLSelectElement)?.value;
+
+      const toggleBtn = row.querySelector('.btn-toggle-active') as HTMLButtonElement | null;
+      const isActive = toggleBtn?.getAttribute('data-active') === '1';
+
+      const pricePaise = priceRupees !== '' ? Math.round(Number(priceRupees) * 100) : null;
+      const comparePaise = compareRupees !== '' ? Math.round(Number(compareRupees) * 100) : null;
+
+      const origText = btn.textContent;
+      btn.textContent = 'Saving...';
+      (btn as HTMLButtonElement).disabled = true;
+
+      try {
+        const res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            name: name?.trim() || null,
+            size_label: sizeLabel?.trim() || null,
+            price_paise: pricePaise,
+            compare_at_paise: comparePaise,
+            stock: stock !== '' ? Number(stock) : 0,
+            badge: badge || null,
+            is_active: isActive ? 1 : 0,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          btn.textContent = '✓ Saved';
+          btn.style.background = '#065F46';
+          btn.style.boxShadow = '';
+          setTimeout(() => {
+            btn.textContent = origText;
+            btn.style.background = '';
+            (btn as HTMLButtonElement).disabled = false;
+          }, 1500);
+        } else {
+          alert(data.error || 'Failed to update product.');
+          btn.textContent = origText;
+          (btn as HTMLButtonElement).disabled = false;
+        }
+      } catch (err: any) {
+        alert('Network error while saving product.');
+        btn.textContent = origText;
+        (btn as HTMLButtonElement).disabled = false;
+      }
+    });
+  });
+
+  // ========================================================
+  // 1.1 QUICK STOCK TOGGLE HANDLER
+  // ========================================================
+  document.querySelectorAll('[data-action="toggle-stock"]').forEach(toggleBtn => {
+    toggleBtn.addEventListener('click', () => {
+      const cell = toggleBtn.closest('.stock-editor-cell');
+      const row = toggleBtn.closest('tr');
+      if (!cell || !row) return;
+
+      const input = cell.querySelector('[data-field="stock"]') as HTMLInputElement | null;
+      if (!input) return;
+
+      const currentVal = parseInt(input.value || '0', 10);
+      const isCurrentlyIn = currentVal > 0;
+
+      if (isCurrentlyIn) {
+        input.value = '0';
+        toggleBtn.className = 'btn-stock-toggle stock-toggle--out';
+        const txt = toggleBtn.querySelector('.stock-state-text');
+        if (txt) txt.textContent = 'Out of Stock';
+        input.classList.add('stock-low-input');
+      } else {
+        input.value = '10';
+        toggleBtn.className = 'btn-stock-toggle stock-toggle--in';
+        const txt = toggleBtn.querySelector('.stock-state-text');
+        if (txt) txt.textContent = 'In Stock';
+        input.classList.remove('stock-low-input');
+      }
+
+      // Highlight the row's save button
+      const saveBtn = row.querySelector('.btn-save-row') as HTMLButtonElement | null;
+      if (saveBtn) {
+        saveBtn.style.boxShadow = '0 0 0 2px #B9803A';
+      }
+    });
+  });
+
+  // Sync toggle button dynamically when user types in stock input:
+  document.querySelectorAll('[data-field="stock"]').forEach(inputEl => {
+    inputEl.addEventListener('input', () => {
+      const input = inputEl as HTMLInputElement;
+      const cell = input.closest('.stock-editor-cell');
+      if (!cell) return;
+      const toggleBtn = cell.querySelector('[data-action="toggle-stock"]');
+      if (!toggleBtn) return;
+
+      const val = parseInt(input.value || '0', 10);
+      const txt = toggleBtn.querySelector('.stock-state-text');
+
+      if (val > 0) {
+        toggleBtn.className = 'btn-stock-toggle stock-toggle--in';
+        if (txt) txt.textContent = 'In Stock';
+        if (val < 5) {
+          input.classList.add('stock-low-input');
+        } else {
+          input.classList.remove('stock-low-input');
+        }
+      } else {
+        toggleBtn.className = 'btn-stock-toggle stock-toggle--out';
+        if (txt) txt.textContent = 'Out of Stock';
+        input.classList.add('stock-low-input');
+      }
+
+      const row = input.closest('tr');
+      const saveBtn = row?.querySelector('.btn-save-row') as HTMLButtonElement | null;
+      if (saveBtn) {
+        saveBtn.style.boxShadow = '0 0 0 2px #B9803A';
+      }
+    });
+  });
+
+  // ========================================================
+  // 2. TOGGLE ACTIVE/HIDDEN STATUS
+  // ========================================================
+  document.querySelectorAll('.btn-toggle-active').forEach(toggleBtn => {
+    toggleBtn.addEventListener('click', async () => {
+      const row = toggleBtn.closest('tr');
+      if (!row) return;
+      const id = row.getAttribute('data-prod-id');
+      const isCurrentlyActive = toggleBtn.getAttribute('data-active') === '1';
+      const newActive = !isCurrentlyActive;
+
+      // Update UI optimistically
+      toggleBtn.setAttribute('data-active', newActive ? '1' : '0');
+      const dot = toggleBtn.querySelector('.status-dot');
+      const label = toggleBtn.querySelector('.status-label');
+      if (dot) dot.className = `status-dot ${newActive ? 'is-active-dot' : 'is-hidden-dot'}`;
+      if (label) label.textContent = newActive ? 'ACTIVE' : 'HIDDEN';
+
+      try {
+        const res = await fetch('/api/admin/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, is_active: newActive ? 1 : 0 }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          // Revert on error
+          toggleBtn.setAttribute('data-active', isCurrentlyActive ? '1' : '0');
+          if (dot) dot.className = `status-dot ${isCurrentlyActive ? 'is-active-dot' : 'is-hidden-dot'}`;
+          if (label) label.textContent = isCurrentlyActive ? 'ACTIVE' : 'HIDDEN';
+          alert(data.error || 'Failed to update product status.');
+        }
+      } catch {
+        toggleBtn.setAttribute('data-active', isCurrentlyActive ? '1' : '0');
+        if (dot) dot.className = `status-dot ${isCurrentlyActive ? 'is-active-dot' : 'is-hidden-dot'}`;
+        if (label) label.textContent = isCurrentlyActive ? 'ACTIVE' : 'HIDDEN';
+        alert('Network error while toggling status.');
+      }
+    });
+  });
+
+  // ========================================================
+  // 3. DELETE PRODUCT HANDLER
+  // ========================================================
+  document.querySelectorAll('.btn-delete-row').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const row = btn.closest('tr');
+      if (!row) return;
+      const id = row.getAttribute('data-prod-id');
+      const name = (row.querySelector('[data-field="name"]') as HTMLInputElement)?.value || id;
+
+      if (!confirm(`Are you sure you want to delete "${name}" (${id})? This cannot be undone.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/admin/products?id=${encodeURIComponent(id || '')}`, {
+          method: 'DELETE',
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          row.style.transition = 'opacity 0.3s, transform 0.3s';
+          row.style.opacity = '0';
+          row.style.transform = 'translateX(-20px)';
+          setTimeout(() => row.remove(), 300);
+        } else {
+          alert(data.error || 'Failed to delete product.');
+        }
+      } catch {
+        alert('Network error while deleting product.');
+      }
+    });
+  });
+
+  // ========================================================
+  // 4. LIVE CLIENT-SIDE TABLE FILTER / SEARCH
+  // ========================================================
+  const searchInput = document.getElementById('product-table-search') as HTMLInputElement | null;
+  const countDisplay = document.getElementById('filter-result-count');
+  searchInput?.addEventListener('input', () => {
+    const query = searchInput.value.toLowerCase().trim();
+    const rows = document.querySelectorAll('#products-table tbody tr');
+    let visible = 0;
+
+    rows.forEach(r => {
+      const text = r.getAttribute('data-search-text') || '';
+      if (!query || text.includes(query)) {
+        (r as HTMLElement).style.display = '';
+        visible++;
+      } else {
+        (r as HTMLElement).style.display = 'none';
+      }
+    });
+
+    if (countDisplay) {
+      countDisplay.textContent = `Showing ${visible} of ${rows.length} items`;
+    }
+  });
+
+  // ========================================================
+  // 5. ADD PRODUCT MODAL MANAGEMENT
+  // ========================================================
+  const modal = document.getElementById('add-product-modal');
+  const btnOpenModal = document.getElementById('btn-open-add-modal');
+  const btnCloseModal = document.getElementById('btn-close-modal');
+  const btnCancelModal = document.getElementById('btn-cancel-modal');
+  const addForm = document.getElementById('add-product-form') as HTMLFormElement | null;
+  const modalAlert = document.getElementById('modal-alert-box');
+  const btnSubmitAdd = document.getElementById('btn-submit-add') as HTMLButtonElement | null;
+
+  function openModal() {
+    if (modal) {
+      modal.style.display = 'flex';
+      if (modalAlert) modalAlert.style.display = 'none';
+      const nameInput = document.getElementById('add-name') as HTMLInputElement | null;
+      setTimeout(() => nameInput?.focus(), 50);
+    }
+  }
+
+  function closeModal() {
+    if (modal) {
+      modal.style.display = 'none';
+      addForm?.reset();
+    }
+  }
+
+  btnOpenModal?.addEventListener('click', openModal);
+  btnCloseModal?.addEventListener('click', closeModal);
+  btnCancelModal?.addEventListener('click', closeModal);
+
+  // Modal Stock Preset Sync
+  const modalStockPreset = document.getElementById('modal-stock-preset') as HTMLSelectElement | null;
+  const modalStockInput = document.getElementById('add-stock') as HTMLInputElement | null;
+  modalStockPreset?.addEventListener('change', () => {
+    if (modalStockInput && modalStockPreset) {
+      modalStockInput.value = modalStockPreset.value;
+    }
+  });
+
+  // Close on outside click
+  modal?.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // Submit Add Product Form
+  addForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!addForm || !btnSubmitAdd) return;
+
+    const formData = new FormData(addForm);
+    const name = formData.get('name') as string;
+    const id = formData.get('id') as string;
+    const categoryId = formData.get('category_id') as string;
+    const brandLine = formData.get('brand_line') as string;
+    const sizeLabel = formData.get('size_label') as string;
+    const priceRupees = formData.get('price_rupees') as string;
+    const compareRupees = formData.get('compare_rupees') as string;
+    const stock = formData.get('stock') as string;
+    const badge = formData.get('badge') as string;
+    const primaryImage = formData.get('primary_image') as string;
+    const shortDesc = formData.get('short_description') as string;
+
+    const pricePaise = priceRupees ? Math.round(Number(priceRupees) * 100) : null;
+    const comparePaise = compareRupees ? Math.round(Number(compareRupees) * 100) : null;
+
+    btnSubmitAdd.disabled = true;
+    btnSubmitAdd.textContent = 'Creating...';
+
+    try {
+      const res = await fetch('/api/admin/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create',
+          id: id?.trim() || undefined,
+          name: name?.trim(),
+          category_id: categoryId || undefined,
+          brand_line: brandLine?.trim() || undefined,
+          size_label: sizeLabel?.trim() || undefined,
+          price_paise: pricePaise,
+          compare_at_paise: comparePaise,
+          stock: stock !== '' ? Number(stock) : 10,
+          badge: badge || undefined,
+          primary_image: primaryImage?.trim() || undefined,
+          short_description: shortDesc?.trim() || undefined,
+          is_active: 1,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        if (modalAlert) {
+          modalAlert.style.background = '#D1FAE5';
+          modalAlert.style.color = '#065F46';
+          modalAlert.textContent = `✓ ${data.message} Reloading catalog...`;
+          modalAlert.style.display = 'block';
+        }
+        setTimeout(() => window.location.reload(), 900);
+      } else {
+        if (modalAlert) {
+          modalAlert.style.background = '#FEE2E2';
+          modalAlert.style.color = '#991B1B';
+          modalAlert.textContent = data.error || 'Failed to create product.';
+          modalAlert.style.display = 'block';
+        }
+        btnSubmitAdd.disabled = false;
+        btnSubmitAdd.textContent = 'Create Product';
+      }
+    } catch {
+      if (modalAlert) {
+        modalAlert.style.background = '#FEE2E2';
+        modalAlert.style.color = '#991B1B';
+        modalAlert.textContent = 'Network error while creating product.';
+        modalAlert.style.display = 'block';
+      }
+      btnSubmitAdd.disabled = false;
+      btnSubmitAdd.textContent = 'Create Product';
+    }
+  });
+
+  // ========================================================
+  // 6. CSV BULK IMPORT
+  // ========================================================
+  const csvInput = document.getElementById('csv-upload-input') as HTMLInputElement | null;
+  csvInput?.addEventListener('change', async () => {
+    if (!csvInput.files || csvInput.files.length === 0) return;
+    const file = csvInput.files[0];
+    const text = await file.text();
+    const alertBox = document.getElementById('product-update-alert');
+
+    try {
+      const res = await fetch('/api/admin/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/csv' },
+        body: text,
+      });
+      const data = await res.json();
+      if (res.ok && alertBox) {
+        alertBox.style.background = '#D1FAE5';
+        alertBox.style.color = '#065F46';
+        alertBox.textContent = `✓ ${data.message} Reloading catalog...`;
+        alertBox.style.display = 'block';
+        setTimeout(() => window.location.reload(), 1500);
+      } else if (alertBox) {
+        alertBox.style.background = '#FEE2E2';
+        alertBox.style.color = '#991B1B';
+        alertBox.textContent = data.error || 'Failed to import CSV.';
+        alertBox.style.display = 'block';
+      }
+    } catch {
+      alert('Upload failed. Please check CSV format.');
+    }
+  });
+</script>

@@ -1,0 +1,401 @@
+---
+// src/pages/account/index.astro
+// Member Account Dashboard with statistics and recent orders
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config/site';
+import { getDB, all, one } from '../../lib/db';
+import { formatPrice } from '../../lib/format';
+
+const user = (Astro.locals as any).user;
+if (!user) {
+  return Astro.redirect('/login?redirect=/account');
+}
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+let orders: any[] = [];
+let totalSpentPaise = 0;
+let deliveredCount = 0;
+let wishlistCount = 0;
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    orders = await all(db, `SELECT * FROM orders WHERE user_id = ? ORDER BY id DESC LIMIT 5`, [user.id]);
+    const stats = await one<{ total_spent: number; delivered_count: number }>(db, `
+      SELECT
+        COALESCE(SUM(CASE WHEN payment_status = 'paid' THEN total_paise ELSE 0 END), 0) as total_spent,
+        COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_count
+      FROM orders WHERE user_id = ?
+    `, [user.id]);
+    totalSpentPaise = stats?.total_spent || 0;
+    deliveredCount = stats?.delivered_count || 0;
+
+    const wishRow = await one<{ count: number }>(db, `SELECT COUNT(*) as count FROM wishlist_items WHERE user_id = ?`, [user.id]);
+    wishlistCount = wishRow?.count || 0;
+  } catch {}
+}
+---
+
+<Base title={`My Account — ${site.name}`}>
+  <div class="site-container account-container">
+    <div class="account-layout">
+      <!-- Account Sidebar (sticky 260px) -->
+      <aside class="account-sidebar">
+        <div class="user-avatar-card">
+          <div class="avatar-circle">
+            {user.first_name[0]}{user.last_name[0]}
+          </div>
+          <strong class="user-display-name">{user.first_name} {user.last_name}</strong>
+          <span class="user-email-text">{user.email}</span>
+        </div>
+
+        <nav class="account-nav-list">
+          <a href="/account" class="account-nav-link is-active">
+            <span>📊</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="/account/orders" class="account-nav-link">
+            <span>📦</span>
+            <span>My Orders</span>
+          </a>
+          <a href="/account/wishlist" class="account-nav-link">
+            <span>❤️</span>
+            <span>My Wishlist ({wishlistCount})</span>
+          </a>
+          <a href="/account/profile" class="account-nav-link">
+            <span>👤</span>
+            <span>Profile Details</span>
+          </a>
+          <a href="/account/addresses" class="account-nav-link">
+            <span>📍</span>
+            <span>Saved Addresses</span>
+          </a>
+          <a href="/account/password" class="account-nav-link">
+            <span>🔑</span>
+            <span>Security & Password</span>
+          </a>
+          <a href="/logout" class="account-nav-link text-danger">
+            <span>🚪</span>
+            <span>Log Out</span>
+          </a>
+        </nav>
+      </aside>
+
+      <!-- Main Account Panel -->
+      <main class="account-main">
+        <h1 class="account-heading">Welcome back, {user.first_name}</h1>
+        <p class="account-sub">Manage your artisan orders, track shipments, and update your delivery addresses.</p>
+
+        <!-- Stats Row -->
+        <div class="stats-cards-grid">
+          <div class="stat-card">
+            <span class="stat-icon">🛍️</span>
+            <div>
+              <span class="stat-value">{orders.length}</span>
+              <span class="stat-label">Total Orders</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🚚</span>
+            <div>
+              <span class="stat-value">{deliveredCount}</span>
+              <span class="stat-label">Delivered Pieces</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🪵</span>
+            <div>
+              <span class="stat-value">{formatPrice(totalSpentPaise)}</span>
+              <span class="stat-label">Artisan Purchases</span>
+            </div>
+          </div>
+          <a href="/account/wishlist" class="stat-card" style="text-decoration:none;">
+            <span class="stat-icon">❤️</span>
+            <div>
+              <span class="stat-value">{wishlistCount}</span>
+              <span class="stat-label">Saved Wishlist Pieces</span>
+            </div>
+          </a>
+        </div>
+
+        <!-- Recent Orders -->
+        <div class="recent-orders-card">
+          <div class="card-header-split">
+            <h2 class="card-title">Recent Orders</h2>
+            <a href="/account/orders" class="view-all-orders">View All Orders &rarr;</a>
+          </div>
+
+          {orders.length > 0 ? (
+            <div class="orders-table-wrap">
+              <table class="account-table">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map(o => (
+                    <tr>
+                      <td><strong>#{o.order_number}</strong></td>
+                      <td>{new Date(o.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                      <td><span class={`status-pill status-${o.status}`}>{o.status}</span></td>
+                      <td><strong>{formatPrice(o.total_paise)}</strong></td>
+                      <td>
+                        <a href={`/order/${o.order_number}?token=${o.access_token}`} class="btn-table-action">View &rarr;</a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div class="empty-orders-prompt">
+              <p>You haven't placed any orders yet.</p>
+              <a href="/collections/all" class="btn-browse-catalog">Explore Handcrafted Collection &rarr;</a>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .account-container {
+    padding-top: 3rem;
+    padding-bottom: 6rem;
+  }
+
+  .account-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .account-sidebar {
+    position: sticky;
+    top: 5.5rem;
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    overflow: hidden;
+  }
+
+  .user-avatar-card {
+    padding: 1.75rem 1.5rem;
+    background: #FAF5EE;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .avatar-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary, #4A2C1D);
+    color: #E2B273;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  .user-display-name {
+    font-size: 1.05rem;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .user-email-text {
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .account-nav-list {
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .account-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--ink, #2B1B14);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .account-nav-link:hover {
+    background: #FAF5EE;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .account-nav-link.is-active {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    font-weight: 600;
+  }
+
+  .text-danger {
+    color: #A8442A !important;
+  }
+
+  /* Main Account */
+  .account-heading {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.3rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.4rem 0;
+  }
+
+  .account-sub {
+    font-size: 0.95rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0 0 2rem 0;
+  }
+
+  .stats-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .stat-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 1.35rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+  }
+
+  .stat-value {
+    display: block;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .recent-orders-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 1.75rem;
+  }
+
+  .card-header-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+
+  .card-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.5rem;
+    margin: 0;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .view-all-orders {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--accent, #B9803A);
+    text-decoration: none;
+  }
+
+  .account-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .account-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(43,27,20,0.1);
+    color: var(--ink-2, #6B5A50);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+
+  .account-table td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(43,27,20,0.06);
+  }
+
+  .status-pill {
+    display: inline-block;
+    padding: 0.2rem 0.55rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .status-confirmed { background: #DBEAFE; color: #1E40AF; }
+  .status-shipped { background: #F3E8FF; color: #6B21A8; }
+  .status-delivered { background: #D1FAE5; color: #065F46; }
+  .status-pending_payment { background: #FEF3C7; color: #92400E; }
+
+  .btn-table-action {
+    color: var(--accent, #B9803A);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .empty-orders-prompt {
+    text-align: center;
+    padding: 2.5rem 1rem;
+  }
+
+  .btn-browse-catalog {
+    display: inline-block;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    padding: 0.65rem 1.5rem;
+    border-radius: 6px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: none;
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 900px) {
+    .account-layout {
+      grid-template-columns: 1fr;
+    }
+    .stats-cards-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

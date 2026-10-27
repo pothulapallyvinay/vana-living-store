@@ -1,0 +1,843 @@
+---
+// src/pages/checkout.astro
+// Secure Checkout flow with Razorpay Orders API, Indian states selector, COD rules, and server validation
+import Base from '../layouts/Base.astro';
+import { site, shipping } from '../config/site';
+import { INDIAN_STATES } from '../lib/validate';
+
+const user = (Astro.locals as any).user;
+---
+
+<Base title={`Checkout — ${site.name}`}>
+  <div class="site-container checkout-container">
+    <div class="checkout-brand-header">
+      <a href="/" class="checkout-logo">
+        <span class="logo-mark">⚜</span>
+        <span class="logo-name">{site.name}</span>
+      </a>
+      <span class="secure-checkout-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <span>256-Bit SSL Encrypted Checkout</span>
+      </span>
+    </div>
+
+    <!-- Global Alert Box -->
+    <div id="checkout-alert" class="checkout-alert" style="display:none;" role="alert"></div>
+
+    <div class="checkout-grid">
+      <!-- Left: Checkout Forms -->
+      <form id="checkout-form" class="checkout-form" novalidate>
+        <!-- Step 1: Contact Details -->
+        <section class="checkout-section">
+          <div class="section-title-wrap">
+            <span class="step-num">1</span>
+            <h2 class="step-title">Contact Information</h2>
+            {!user && (
+              <span class="step-sub-action">Have an account? <a href="/login?redirect=/checkout">Log in</a></span>
+            )}
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="first_name">First Name *</label>
+              <input type="text" id="first_name" name="first_name" value={user?.first_name || ''} required autocomplete="given-name" />
+            </div>
+            <div class="form-group">
+              <label for="last_name">Last Name *</label>
+              <input type="text" id="last_name" name="last_name" value={user?.last_name || ''} required autocomplete="family-name" />
+            </div>
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="email">Email Address (for invoice & tracking updates) *</label>
+              <input type="email" id="email" name="email" value={user?.email || ''} required autocomplete="email" />
+            </div>
+            <div class="form-group">
+              <label for="phone">Phone Number (10 digits) *</label>
+              <div class="phone-input-wrap">
+                <span class="phone-prefix">+91</span>
+                <input type="tel" id="phone" name="phone" placeholder="9876543210" maxlength="10" required autocomplete="tel-national" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Step 2: Shipping Destination -->
+        <section class="checkout-section">
+          <div class="section-title-wrap">
+            <span class="step-num">2</span>
+            <h2 class="step-title">Delivery Address in India</h2>
+          </div>
+
+          <div class="form-group">
+            <label for="address_line1">Street Address, House/Flat No., Building Name *</label>
+            <input type="text" id="address_line1" name="address_line1" required autocomplete="street-address" />
+          </div>
+
+          <div class="form-group">
+            <label for="address_line2">Apartment, Floor, Landmark (Optional)</label>
+            <input type="text" id="address_line2" name="address_line2" autocomplete="address-line2" />
+          </div>
+
+          <div class="form-row-3">
+            <div class="form-group">
+              <label for="city">City / District *</label>
+              <input type="text" id="city" name="city" required autocomplete="address-level2" />
+            </div>
+            <div class="form-group">
+              <label for="state">State / UT *</label>
+              <select id="state" name="state" required autocomplete="address-level1">
+                <option value="">Select State</option>
+                {INDIAN_STATES.map(s => (
+                  <option value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="pincode">PIN Code (6 digits) *</label>
+              <input type="text" id="pincode" name="pincode" maxlength="6" pattern="[0-9]{6}" required autocomplete="postal-code" />
+            </div>
+          </div>
+
+          <!-- Business Tax Info -->
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="gstin">GSTIN (Optional, for business tax invoice)</label>
+            <input type="text" id="gstin" name="gstin" placeholder="e.g. 27AAAAA0000A1Z5" maxlength="15" />
+          </div>
+
+          <div class="form-group">
+            <label for="customer_notes">Delivery Instructions or Notes for Artisan (Optional)</label>
+            <textarea id="customer_notes" name="customer_notes" rows="2" placeholder="e.g., Gate code, call before delivery, gift message"></textarea>
+          </div>
+        </section>
+
+        <!-- Step 3: Payment Method -->
+        <section class="checkout-section">
+          <div class="section-title-wrap">
+            <span class="step-num">3</span>
+            <h2 class="step-title">Payment Method</h2>
+          </div>
+
+          <div class="payment-options">
+            <!-- Option 1: Razorpay Online -->
+            <label class="payment-option is-selected" id="opt-online">
+              <input type="radio" name="payment_method" value="online" checked />
+              <div class="option-content">
+                <div class="option-header">
+                  <strong>Online Payment (UPI, Cards, NetBanking, Wallets)</strong>
+                  <span class="recommended-badge">Fast & Seamless</span>
+                </div>
+                <p class="option-desc">Zero processing fees. Instant dispatch priority via Razorpay secure gateway.</p>
+                <div class="option-icons">
+                  <span>Google Pay</span><span>PhonePe</span><span>Paytm</span><span>Cards</span><span>UPI</span>
+                </div>
+              </div>
+            </label>
+
+            <!-- Option 2: Cash on Delivery -->
+            <label class="payment-option" id="opt-cod">
+              <input type="radio" name="payment_method" value="cod" />
+              <div class="option-content">
+                <div class="option-header">
+                  <strong>Cash on Delivery (COD)</strong>
+                  <span class="cod-tag" id="cod-rule-badge">Doorstep Cash</span>
+                </div>
+                <p class="option-desc" id="cod-rule-desc">
+                  Pay cash or UPI at your doorstep upon delivery. Available for orders up to ₹50,000.
+                </p>
+              </div>
+            </label>
+          </div>
+        </section>
+      </form>
+
+      <!-- Right: Order Review Sidebar -->
+      <aside class="checkout-sidebar">
+        <div class="review-card">
+          <h2 class="review-title">Order Summary</h2>
+
+          <div class="review-items" id="review-items">
+            <!-- Injected via client JS -->
+            <p style="color:var(--ink-2);text-align:center;padding:1.5rem;">Loading order details...</p>
+          </div>
+
+          <div class="review-totals">
+            <div class="review-row">
+              <span>Subtotal</span>
+              <span id="rev-subtotal">₹0</span>
+            </div>
+            <div class="review-row" id="rev-discount-row" style="display:none;color:#2F6B4F;">
+              <span>Discount</span>
+              <span id="rev-discount">-₹0</span>
+            </div>
+            <div class="review-row">
+              <span>Shipping</span>
+              <span id="rev-shipping">₹0</span>
+            </div>
+            <div class="review-divider"></div>
+            <div class="review-row review-row--grand">
+              <span>Total Payable</span>
+              <span id="rev-total">₹0</span>
+            </div>
+            <div class="advance-notice" id="rev-advance-notice" style="display:none;">
+              <span>Online Advance to pay now: <strong id="rev-advance-amt">₹0</strong></span>
+              <span style="font-size:0.75rem;color:var(--ink-2);">(Balance of <strong id="rev-balance-amt">₹0</strong> on delivery)</span>
+            </div>
+          </div>
+
+          <button type="submit" form="checkout-form" id="btn-place-order" class="btn-place-order">
+            <span id="place-order-text">Place Order</span>
+          </button>
+
+          <div class="sidebar-guarantee">
+            <span class="icon">🛡️</span>
+            <span>100% Transit Damage Protection & Free Exchanges</span>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Load Razorpay Checkout.js dynamically -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</Base>
+
+<style>
+  .checkout-container {
+    padding-top: 2rem;
+    padding-bottom: 6rem;
+    max-width: 1200px;
+  }
+
+  .checkout-brand-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+    margin-bottom: 2rem;
+  }
+
+  .checkout-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .logo-mark {
+    font-size: 1.5rem;
+    color: var(--accent, #B9803A);
+  }
+
+  .logo-name {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.6rem;
+    font-weight: 700;
+  }
+
+  .secure-checkout-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #2F6B4F;
+    background: #E8F5EE;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+  }
+
+  .checkout-alert {
+    background: #FEE2E2;
+    border: 1px solid #F87171;
+    color: #991B1B;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    margin-bottom: 2rem;
+  }
+
+  .checkout-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .checkout-section {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 2rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .section-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.84rem;
+    font-weight: 700;
+  }
+
+  .step-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0;
+  }
+
+  .step-sub-action {
+    margin-left: auto;
+    font-size: 0.8125rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .step-sub-action a {
+    color: var(--accent, #B9803A);
+    font-weight: 600;
+  }
+
+  .form-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink, #2B1B14);
+    margin-bottom: 0.4rem;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.9rem;
+    color: var(--ink, #2B1B14);
+    background: #FFFFFF;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    border-color: var(--accent, #B9803A);
+    box-shadow: 0 0 0 3px rgba(185, 128, 58, 0.15);
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-row-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 120px;
+    gap: 1rem;
+  }
+
+  .phone-input-wrap {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+
+  .phone-prefix {
+    background: var(--bg, #FBF7F1);
+    color: var(--ink-2, #6B5A50);
+    padding: 0.65rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-right: 1px solid var(--border, rgba(43,27,20,0.15));
+  }
+
+  .phone-input-wrap input {
+    border: none;
+    border-radius: 0;
+  }
+
+  /* Payment Radios */
+  .payment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .payment-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 8px;
+    padding: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .payment-option.is-selected {
+    border-color: var(--accent, #B9803A);
+    background: #FAF5EE;
+    box-shadow: 0 0 0 2px rgba(185, 128, 58, 0.2);
+  }
+
+  .payment-option input[type="radio"] {
+    margin-top: 0.25rem;
+  }
+
+  .option-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+  }
+
+  .recommended-badge {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    background: #2F6B4F;
+    color: #FFFFFF;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .cod-tag {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background: var(--surface-2, #F3EBDF);
+    color: var(--primary, #4A2C1D);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+  }
+
+  .option-desc {
+    font-size: 0.8125rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
+  }
+
+  .option-icons {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .option-icons span {
+    font-size: 0.6875rem;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(43,27,20,0.1);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  /* Review Sidebar */
+  .review-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 1.75rem;
+    position: sticky;
+    top: 5.5rem;
+  }
+
+  .review-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1.25rem 0;
+  }
+
+  .review-items {
+    max-height: 280px;
+    overflow-y: auto;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+    padding-bottom: 1rem;
+  }
+
+  .review-totals {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .review-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.875rem;
+    color: var(--ink, #2B1B14);
+  }
+
+  .review-divider {
+    height: 1px;
+    background: rgba(43,27,20,0.08);
+    margin: 0.35rem 0;
+  }
+
+  .review-row--grand {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .advance-notice {
+    background: #FAF5EE;
+    border: 1px solid rgba(185, 128, 58, 0.3);
+    border-radius: 6px;
+    padding: 0.65rem;
+    font-size: 0.8125rem;
+    color: var(--primary, #4A2C1D);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .btn-place-order {
+    width: 100%;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.95rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-place-order:hover {
+    background: #3A2013;
+  }
+
+  .sidebar-guarantee {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+    margin-top: 1.25rem;
+    text-align: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 1024px) {
+    .checkout-grid {
+      grid-template-columns: 1fr;
+    }
+    .review-card {
+      position: static;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .form-row-2,
+    .form-row-3 {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  let serverPricing: any = null;
+
+  async function syncCheckoutReview() {
+    const rawCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const itemsEl = document.getElementById('review-items');
+    if (!rawCart || rawCart.length === 0) {
+      window.location.href = '/cart';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/cart/price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lines: rawCart }),
+      });
+      const data = await res.json();
+      serverPricing = data;
+
+      if (itemsEl) {
+        itemsEl.innerHTML = data.lines.map((l: any) => `
+          <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;">
+            <div style="width:48px;height:48px;border-radius:6px;overflow:hidden;background:#F3EBDF;flex-shrink:0;">
+              <img src="${l.image || '/placeholder-decor.svg'}" alt="${l.product_name}" style="width:100%;height:100%;object-fit:cover;" />
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:0.8125rem;font-weight:600;color:#2B1B14;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${l.product_name}</div>
+              <div style="font-size:0.75rem;color:#6B5A50;">Qty: ${l.qty} × ₹${Math.floor(l.price_paise / 100).toLocaleString('en-IN')}</div>
+            </div>
+            <div style="font-size:0.84rem;font-weight:600;color:#4A2C1D;">
+              ₹${Math.floor(l.line_subtotal_paise / 100).toLocaleString('en-IN')}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Update rows
+      const sub = document.getElementById('rev-subtotal');
+      const ship = document.getElementById('rev-shipping');
+      const tot = document.getElementById('rev-total');
+      const btnText = document.getElementById('place-order-text');
+
+      if (sub) sub.textContent = `₹${Math.floor(data.subtotal_paise / 100).toLocaleString('en-IN')}`;
+      if (ship) ship.textContent = data.shipping_paise === 0 ? 'FREE' : `₹${Math.floor(data.shipping_paise / 100).toLocaleString('en-IN')}`;
+      if (tot) tot.textContent = `₹${Math.floor(data.total_paise / 100).toLocaleString('en-IN')}`;
+      if (btnText) btnText.textContent = `Place Order · ₹${Math.floor(data.total_paise / 100).toLocaleString('en-IN')}`;
+
+      // COD advance calculations
+      updatePaymentOptionStates();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function updatePaymentOptionStates() {
+    if (!serverPricing) return;
+    const codRadio = document.querySelector('input[name="payment_method"][value="cod"]') as HTMLInputElement | null;
+    const codBadge = document.getElementById('cod-rule-badge');
+    const codDesc = document.getElementById('cod-rule-desc');
+    const advanceNotice = document.getElementById('rev-advance-notice');
+    const advAmt = document.getElementById('rev-advance-amt');
+    const balAmt = document.getElementById('rev-balance-amt');
+    const btnText = document.getElementById('place-order-text');
+
+    const isCod = codRadio?.checked;
+    const codLimitPaise = serverPricing.cod_limit_paise || 5000000;
+    const codMaxLimitPaise = serverPricing.cod_max_limit_paise || 10000000;
+
+    if (!serverPricing.cod_available) {
+      if (codRadio) {
+        codRadio.disabled = true;
+        if (codRadio.checked) {
+          const onlineRadio = document.querySelector('input[name="payment_method"][value="online"]') as HTMLInputElement | null;
+          if (onlineRadio) {
+            onlineRadio.checked = true;
+            onlineRadio.dispatchEvent(new Event('change'));
+          }
+        }
+      }
+      if (codBadge) codBadge.textContent = 'Unavailable';
+      if (codDesc) codDesc.textContent = `Cash on Delivery is unavailable for orders above ₹${Math.floor(codMaxLimitPaise / 100).toLocaleString('en-IN')}. Please choose online payment.`;
+      if (advanceNotice) advanceNotice.style.display = 'none';
+      if (btnText) btnText.textContent = `Place Order · ₹${Math.floor(serverPricing.total_paise / 100).toLocaleString('en-IN')}`;
+    } else if (serverPricing.cod_advance_required) {
+      if (codRadio) codRadio.disabled = false;
+      if (codBadge) codBadge.textContent = '30% Advance Online';
+      if (codDesc) codDesc.textContent = `Orders above ₹${Math.floor(codLimitPaise / 100).toLocaleString('en-IN')} require a 30% advance (₹${Math.floor(serverPricing.cod_advance_paise / 100).toLocaleString('en-IN')}) online. The balance of ₹${Math.floor(serverPricing.cod_balance_paise / 100).toLocaleString('en-IN')} is paid on delivery.`;
+      if (isCod) {
+        if (advanceNotice) advanceNotice.style.display = 'flex';
+        if (advAmt) advAmt.textContent = `₹${Math.floor(serverPricing.cod_advance_paise / 100).toLocaleString('en-IN')}`;
+        if (balAmt) balAmt.textContent = `₹${Math.floor(serverPricing.cod_balance_paise / 100).toLocaleString('en-IN')}`;
+        if (btnText) btnText.textContent = `Pay Advance · ₹${Math.floor(serverPricing.cod_advance_paise / 100).toLocaleString('en-IN')}`;
+      } else {
+        if (advanceNotice) advanceNotice.style.display = 'none';
+        if (btnText) btnText.textContent = `Place Order · ₹${Math.floor(serverPricing.total_paise / 100).toLocaleString('en-IN')}`;
+      }
+    } else {
+      if (codRadio) codRadio.disabled = false;
+      if (codBadge) codBadge.textContent = 'Doorstep Cash';
+      if (codDesc) codDesc.textContent = `Pay with cash or UPI QR code at your doorstep upon delivery (available for orders up to ₹${Math.floor(codLimitPaise / 100).toLocaleString('en-IN')}).`;
+      if (advanceNotice) advanceNotice.style.display = 'none';
+      if (isCod && btnText) {
+        btnText.textContent = `Confirm COD Order · ₹${Math.floor(serverPricing.total_paise / 100).toLocaleString('en-IN')}`;
+      } else if (btnText) {
+        btnText.textContent = `Place Order · ₹${Math.floor(serverPricing.total_paise / 100).toLocaleString('en-IN')}`;
+      }
+    }
+  }
+
+  document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('is-selected'));
+      radio.closest('.payment-option')?.classList.add('is-selected');
+      updatePaymentOptionStates();
+    });
+  });
+
+  // Handle Form Submission
+  const form = document.getElementById('checkout-form') as HTMLFormElement | null;
+  const alertBox = document.getElementById('checkout-alert');
+  const submitBtn = document.getElementById('btn-place-order') as HTMLButtonElement | null;
+
+  function showAlert(msg: string) {
+    if (!alertBox) return;
+    alertBox.textContent = msg;
+    alertBox.style.display = 'block';
+    alertBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!alertBox || !submitBtn) return;
+    alertBox.style.display = 'none';
+
+    const formData = new FormData(form);
+    const rawCart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+    const payload = {
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      address_line1: formData.get('address_line1'),
+      address_line2: formData.get('address_line2'),
+      city: formData.get('city'),
+      state: formData.get('state'),
+      pincode: formData.get('pincode'),
+      payment_method: formData.get('payment_method'),
+      gstin: formData.get('gstin'),
+      customer_notes: formData.get('customer_notes'),
+      lines: rawCart,
+    };
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing Order...';
+
+    try {
+      const res = await fetch('/api/checkout/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to initialize order.');
+      }
+
+      // Plain COD order redirect
+      if (data.redirect) {
+        localStorage.removeItem('cart');
+        window.location.href = data.redirect;
+        return;
+      }
+
+      // Handle Demo Payment Simulation
+      if (data.is_demo || !(window as any).Razorpay) {
+        const confirmed = confirm(`[DEMO MODE] Razorpay Payment Gateway\n\nOrder: ${data.order_number}\nPayable: ₹${Math.floor(data.amount_paise / 100).toLocaleString('en-IN')}\n\nClick OK to simulate successful payment, or Cancel to dismiss.`);
+        if (confirmed) {
+          try {
+            const verifyRes = await fetch('/api/checkout/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                order_number: data.order_number,
+                razorpay_order_id: data.razorpay_order_id,
+                razorpay_payment_id: 'pay_demo_' + Date.now(),
+                razorpay_signature: 'demo_signature',
+              }),
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.redirect) {
+              localStorage.removeItem('cart');
+              window.location.href = verifyData.redirect;
+              return;
+            } else {
+              showAlert(verifyData.error || 'Verification failed.');
+            }
+          } catch (e: any) {
+            showAlert('Verification network error.');
+          }
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Retry Payment';
+        return;
+      }
+
+      // Open Razorpay Modal for live online payment / COD advance
+      if (data.razorpay_order_id && (window as any).Razorpay) {
+        const options = {
+          key: data.key_id,
+          amount: data.amount_paise,
+          currency: 'INR',
+          name: site.name,
+          description: `Order ${data.order_number}`,
+          order_id: data.razorpay_order_id,
+          prefill: {
+            name: data.customer.name,
+            email: data.customer.email,
+            contact: data.customer.phone,
+          },
+          theme: {
+            color: '#4A2C1D',
+          },
+          handler: async function (response: any) {
+            // Post to verify signature
+            try {
+              const verifyRes = await fetch('/api/checkout/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  order_number: data.order_number,
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyRes.ok && verifyData.redirect) {
+                localStorage.removeItem('cart');
+                window.location.href = verifyData.redirect;
+              } else {
+                showAlert(verifyData.error || 'Signature verification failed.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Retry Payment';
+              }
+            } catch (err) {
+              showAlert('Payment verification network error. Please check your bank account or contact support.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Retry Payment';
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              showAlert('Payment modal dismissed. Your order is pending payment. You may retry payment.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = 'Retry Payment';
+            },
+          },
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+      }
+    } catch (err: any) {
+      showAlert(err.message || 'An unexpected error occurred during checkout.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Place Order';
+    }
+  });
+
+  syncCheckoutReview();
+</script>

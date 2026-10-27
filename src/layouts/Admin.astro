@@ -1,0 +1,119 @@
+---
+// src/layouts/Admin.astro
+import { site } from '../config/site';
+
+interface Props {
+  title?: string;
+  activeNav?: 'dashboard' | 'products' | 'categories' | 'orders' | 'coupons' | 'users' | 'settings';
+  user?: { id: number; first_name: string; last_name: string; role: string } | null;
+}
+
+const {
+  title = 'Admin Management',
+  activeNav = 'dashboard',
+  user = (Astro.locals as any).user,
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} — {site.name} Control Panel</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/styles/global.css" />
+  <link rel="stylesheet" href="/styles/admin.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body class="admin-body">
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-brand">
+        <span class="admin-brand-icon">⚜</span>
+        <div>
+          <div class="admin-brand-title">{site.name}</div>
+          <span class="admin-brand-badge">Control Panel</span>
+        </div>
+      </div>
+
+      <nav class="admin-nav">
+        <a href="/admin" class={`admin-nav-item ${activeNav === 'dashboard' ? 'is-active' : ''}`}>
+          <span>📊</span>
+          <span>Dashboard</span>
+        </a>
+        <a href="/admin/products" class={`admin-nav-item ${activeNav === 'products' ? 'is-active' : ''}`}>
+          <span>🪵</span>
+          <span>Products & Media</span>
+        </a>
+        <a href="/admin/categories" class={`admin-nav-item ${activeNav === 'categories' ? 'is-active' : ''}`}>
+          <span>📁</span>
+          <span>Categories & Spaces</span>
+        </a>
+        <a href="/admin/orders" class={`admin-nav-item ${activeNav === 'orders' ? 'is-active' : ''}`}>
+          <span>📦</span>
+          <span>Orders & Shipments</span>
+        </a>
+        <a href="/admin/coupons" class={`admin-nav-item ${activeNav === 'coupons' ? 'is-active' : ''}`}>
+          <span>🎟️</span>
+          <span>Discount Coupons</span>
+        </a>
+        <a href="/admin/users" class={`admin-nav-item ${activeNav === 'users' ? 'is-active' : ''}`}>
+          <span>👥</span>
+          <span>User Accounts</span>
+        </a>
+        <a href="/admin/settings" class={`admin-nav-item ${activeNav === 'settings' ? 'is-active' : ''}`}>
+          <span>⚙️</span>
+          <span>Store Settings</span>
+        </a>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        <a href="/" target="_blank" class="admin-nav-item">
+          <span>🛍️</span>
+          <span>View Public Store &rarr;</span>
+        </a>
+        <a href="/logout" class="admin-nav-item" style="color:#F59E9E;">
+          <span>🚪</span>
+          <span>Sign Out</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="admin-main">
+      <header class="admin-topbar">
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <button id="admin-menu-btn" class="admin-btn admin-btn--outline" style="display:none;" aria-label="Toggle Menu">☰</button>
+          <h1 class="admin-page-title">{title}</h1>
+        </div>
+        <div class="admin-topbar-actions">
+          {user && (
+            <span style="font-size:0.875rem;color:var(--admin-ink-muted);">
+              Logged in as <strong>{user.first_name} {user.last_name}</strong> ({user.role})
+            </span>
+          )}
+        </div>
+      </header>
+
+      <main class="admin-content">
+        <slot />
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const menuBtn = document.getElementById('admin-menu-btn');
+    const sidebar = document.getElementById('admin-sidebar');
+    if (window.innerWidth <= 900 && menuBtn) {
+      menuBtn.style.display = 'inline-flex';
+    }
+    menuBtn?.addEventListener('click', () => {
+      sidebar?.classList.toggle('is-open');
+    });
+  </script>
+</body>
+</html>

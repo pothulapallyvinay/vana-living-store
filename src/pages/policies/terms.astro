@@ -1,0 +1,49 @@
+---
+// src/pages/policies/terms.astro
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config/site';
+---
+
+<Base title={`Terms of Service — ${site.name}`}>
+  <div class="site-container content-page-container policy-container">
+    <span class="policy-tag">LEGAL & COMPLIANCE</span>
+    <h1 class="policy-title">Terms of Service</h1>
+    <p class="policy-update">Last updated: October 2026</p>
+
+    <div class="policy-body">
+      <h2>1. Overview & Agreement</h2>
+      <p>
+        This website is operated by {site.name}. Throughout the site, the terms "we", "us", and "our" refer to {site.name}. By visiting our site and/or purchasing from us, you engage in our "Service" and agree to be bound by the following terms and conditions.
+      </p>
+
+      <h2>2. Online Store Terms & Product Authenticity</h2>
+      <p>
+        All products sold on this platform are handcrafted using natural wood species (principally birch plywood and walnut). Because wood is an organic material, subtle variations in natural grain patterns, timber hues, and laser edge character are inherent to the art form and are celebrated as marks of individual authenticity.
+      </p>
+
+      <h2>3. Pricing & Currency</h2>
+      <p>
+        All prices displayed on this store are listed in <strong>Indian Rupees (INR / ₹)</strong> and are inclusive of Goods and Services Tax (GST 18%) unless explicitly noted otherwise. We reserve the right to modify prices or discontinue items without prior notice.
+      </p>
+
+      <h2>4. Secure Payments via Razorpay</h2>
+      <p>
+        Online transactions are processed via <strong>Razorpay Software Private Limited</strong> using industry-standard 256-bit SSL encryption. We do not store or capture your credit/debit card numbers or net banking passwords on our servers.
+      </p>
+
+      <h2>5. Governing Law & Jurisdiction</h2>
+      <p>
+        These Terms of Service and any separate agreements shall be governed by and construed in accordance with the laws of <strong>India</strong>, and subject to the exclusive jurisdiction of courts in <strong>[OWNER TO CONFIRM: New Delhi / City of Registration]</strong>.
+      </p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .policy-container { padding-top: 3.5rem; padding-bottom: 6rem; max-width: 840px; }
+  .policy-tag { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent, #B9803A); }
+  .policy-title { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 2.75rem; color: var(--primary, #4A2C1D); margin: 0.5rem 0 0.25rem; }
+  .policy-update { font-size: 0.8125rem; color: var(--ink-2, #6B5A50); margin-bottom: 2.5rem; }
+  .policy-body h2 { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 1.5rem; color: var(--primary, #4A2C1D); margin: 2rem 0 0.75rem; }
+  .policy-body p, .policy-body li { font-size: 0.95rem; line-height: 1.7; color: var(--ink-2, #6B5A50); }
+</style>

@@ -1,0 +1,11 @@
+# Cloudflare D1 (SQLite) local database for development
+# Copy this file to .dev.vars and fill in your values
+# NEVER commit .dev.vars to git
+
+RAZORPAY_KEY_ID=rzp_test_YOUR_KEY_ID
+RAZORPAY_KEY_SECRET=YOUR_KEY_SECRET
+RAZORPAY_WEBHOOK_SECRET=YOUR_WEBHOOK_SECRET
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=changeme123
+TURNSTILE_SECRET=YOUR_TURNSTILE_SECRET
+RESEND_API_KEY=re_YOUR_RESEND_KEY

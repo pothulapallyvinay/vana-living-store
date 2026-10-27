@@ -1,0 +1,112 @@
+---
+// src/pages/admin/categories.astro
+import Admin from '../../layouts/Admin.astro';
+import { getDB, all } from '../../lib/db';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+let categories: any[] = [];
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    categories = await all(db, `SELECT * FROM categories ORDER BY sort_order ASC, id ASC`);
+  } catch {}
+}
+---
+
+<Admin title="Categories & Spaces Management" activeNav="categories">
+  <div class="admin-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <h2 style="font-family:var(--admin-font-head);font-size:1.5rem;color:var(--admin-primary);margin:0;">Store Categories & Collections</h2>
+      <button type="button" class="admin-btn admin-btn--accent" onclick="document.getElementById('add-cat-modal').style.display = 'block'">
+        + Add New Category
+      </button>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Slug</th>
+            <th>Description</th>
+            <th>Order</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map(c => (
+            <tr>
+              <td>{c.id}</td>
+              <td><strong>{c.name}</strong></td>
+              <td><code>{c.slug}</code></td>
+              <td style="max-width:250px;font-size:0.8125rem;color:var(--admin-ink-muted);">{c.description || '—'}</td>
+              <td>{c.sort_order}</td>
+              <td>
+                <span class={`status-badge ${c.is_active ? 'status-badge--delivered' : 'status-badge--cancelled'}`}>
+                  {c.is_active ? 'Active' : 'Disabled'}
+                </span>
+              </td>
+              <td>
+                <a href={`/collections/${c.slug}`} target="_blank" class="admin-btn admin-btn--outline" style="padding:0.25rem 0.5rem;font-size:0.75rem;">
+                  View Collection &rarr;
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add Category Modal -->
+  <div id="add-cat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:#FFFFFF;border-radius:10px;padding:2rem;max-width:450px;margin:10% auto;">
+      <h3 style="margin-top:0;">Add New Category</h3>
+      <form id="new-cat-form">
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.25rem;">Category Name *</label>
+          <input type="text" id="cat_name" required style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.25rem;">URL Slug *</label>
+          <input type="text" id="cat_slug" required style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+        <div style="margin-bottom:1.5rem;">
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.25rem;">Short Description</label>
+          <textarea id="cat_desc" rows="2" style="width:100%;padding:0.5rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;"></textarea>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+          <button type="button" class="admin-btn admin-btn--outline" onclick="document.getElementById('add-cat-modal').style.display = 'none'">Cancel</button>
+          <button type="submit" class="admin-btn admin-btn--primary">Save Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Admin>
+
+<script>
+  const form = document.getElementById('new-cat-form');
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = (document.getElementById('cat_name') as HTMLInputElement).value;
+    const slug = (document.getElementById('cat_slug') as HTMLInputElement).value;
+    const desc = (document.getElementById('cat_desc') as HTMLTextAreaElement).value;
+
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slug, description: desc }),
+      });
+      if (res.ok) {
+        window.location.reload();
+      } else {
+        alert('Failed to create category');
+      }
+    } catch {
+      alert('Network error');
+    }
+  });
+</script>

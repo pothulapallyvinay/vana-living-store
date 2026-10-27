@@ -1,0 +1,70 @@
+---
+// src/pages/policies/returns-refunds.astro
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config/site';
+---
+
+<Base title={`Return & Refund Policy — ${site.name}`}>
+  <div class="site-container content-page-container policy-container">
+    <span class="policy-tag">STORE POLICIES</span>
+    <h1 class="policy-title">Return & Refund Policy</h1>
+    <p class="policy-update">Last updated: October 2026</p>
+
+    <div class="policy-body">
+      <h2>1. Artisan Quality & Transit Guarantee</h2>
+      <p>
+        At {site.name}, we hold our handcrafted wooden creations to the highest standards of artisan craftsmanship. If your artwork arrives damaged in transit or defective in any way, we provide an immediate, complimentary replacement.
+      </p>
+
+      <h2>2. Transit Damage Protocol (Immediate Replacement)</h2>
+      <p>
+        If your parcel exhibits signs of exterior impact or internal damage upon unboxing:
+      </p>
+      <ul>
+        <li>Photograph the shipping label, packaging crate, and the damaged piece within <strong>[OWNER TO CONFIRM: 48 hours]</strong> of delivery.</li>
+        <li>Send the images and your Order Number to our WhatsApp support at <code>+{site.whatsapp}</code> or email <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.</li>
+        <li>Our workshop will initiate a priority replacement piece without requiring you to undergo lengthy courier insurance claims.</li>
+      </ul>
+
+      <h2>3. Return Window for Standard Items</h2>
+      <p>
+        For standard catalog products (non-customized):
+      </p>
+      <ul>
+        <li>You may request a return or exchange within <strong>[OWNER TO CONFIRM: 7 days]</strong> of delivery.</li>
+        <li>The product must remain unused, unmounted, and preserved in its original protective packaging.</li>
+      </ul>
+
+      <h2>4. Custom & Bespoke Orders</h2>
+      <p>
+        Artisan pieces custom-manufactured to non-standard dimensions, personalized with engraved names/logos, or stained in bespoke finishes are non-refundable once production has commenced, except in the case of manufacturing defect or transit damage.
+      </p>
+
+      <h2>5. Refund Process & Timelines</h2>
+      <p>
+        Approved refunds are credited directly to the original payment source:
+      </p>
+      <ul>
+        <li><strong>Online Payments (UPI, Cards, NetBanking):</strong> Processed securely via the Razorpay Refunds API within <strong>5 to 7 business days</strong> to your bank account or card.</li>
+        <li><strong>Cash on Delivery (COD) Orders:</strong> Refunds for verified returns are remitted directly to your Indian bank account via IMPS/NEFT upon receipt and inspection of the returned parcel.</li>
+      </ul>
+
+      <h2>6. Cancellation Policy</h2>
+      <p>
+        Orders may be cancelled free of charge within <strong>24 hours</strong> of placement, prior to raw lumber cutting and laser configuration. Once dispatched, standard return guidelines apply.
+      </p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .policy-container { padding-top: 3.5rem; padding-bottom: 6rem; max-width: 840px; }
+  .policy-tag { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent, #B9803A); }
+  .policy-title { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 2.75rem; color: var(--primary, #4A2C1D); margin: 0.5rem 0 0.25rem; }
+  .policy-update { font-size: 0.8125rem; color: var(--ink-2, #6B5A50); margin-bottom: 2.5rem; }
+  .policy-body h2 { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 1.5rem; color: var(--primary, #4A2C1D); margin: 2rem 0 0.75rem; }
+  .policy-body p, .policy-body li { font-size: 0.95rem; line-height: 1.7; color: var(--ink-2, #6B5A50); }
+  .policy-body ul { padding-left: 1.25rem; margin-bottom: 1.25rem; }
+  .policy-body li { margin-bottom: 0.5rem; }
+  .policy-body a { color: var(--accent, #B9803A); font-weight: 600; }
+</style>

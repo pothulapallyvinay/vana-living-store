@@ -1,0 +1,806 @@
+---
+// src/pages/collections/[slug].astro
+// Collection listing with dynamic 260px filter sidebar, 2/3/4 column grid toggle, and parameterised SQL
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { site, nav } from '../../config/site';
+import { getDB, all, one } from '../../lib/db';
+
+const { slug } = Astro.params;
+const url = Astro.url;
+
+// Query parameters
+const currentSpace = url.searchParams.get('space') || '';
+const currentSort = url.searchParams.get('sort') || 'featured';
+const minPrice = url.searchParams.get('min') || '';
+const maxPrice = url.searchParams.get('max') || '';
+const currentBadge = url.searchParams.get('badge') || '';
+const currentPage = parseInt(url.searchParams.get('page') || '1', 10);
+const pageSize = 12;
+const offset = (currentPage - 1) * pageSize;
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+
+// Collection metadata definitions
+const COLLECTION_INFO: Record<string, { title: string; desc: string; banner?: string }> = {
+  'all': {
+    title: 'All Handcrafted Collections',
+    desc: 'Browse our complete catalog of 32 artisanal 3D layered wooden sculptures, designer lighting fixtures, and laser-crafted clocks.',
+  },
+  'wall-art': {
+    title: '3D Multi-Layered Wooden Wall Art',
+    desc: 'Intricate concentric mandalas, nature wildlife portraits, and figurative sculptures with up to 9 stacked architectural tiers.',
+  },
+  'mandala-wall-art': {
+    title: 'Mandala Wall Art',
+    desc: 'Concentric geometric mandalas and sacred wall medallions with precision laser filigree.',
+  },
+  'nature-wildlife': {
+    title: 'Nature & Wildlife Art',
+    desc: 'Vibrant peacocks, royal tigers, swimming koi fish, and Trees of Life carved in dimensional birch.',
+  },
+  'figures-portraits': {
+    title: 'Figures & Portraits',
+    desc: 'Feminine silhouettes, mother and child reliefs, and expressive pop-art portraits.',
+  },
+  'spiritual-devotional': {
+    title: 'Spiritual & Devotional Décor',
+    desc: 'Sacred Aum mandalas and Lord Ganesha on lotus throne designed for serene home pooja rooms.',
+  },
+  'maps-abstract': {
+    title: 'Maps & Abstract Art',
+    desc: 'Multi-layer bathymetric ocean depth world maps and cubist three-faces relief sculptures.',
+  },
+  'lighting': {
+    title: 'Designer Wooden Lamps & Lighting',
+    desc: 'Architectural pinecone pendant shades, curved slat table lamps, and lotus acrylic LED night lights.',
+  },
+  'pendant-lamps': {
+    title: 'Pendant Lamps & Chandeliers',
+    desc: 'Suspended wooden luminaires casting intricate ambient shadow patterns across ceilings and walls.',
+  },
+  'table-floor-lamps': {
+    title: 'Table & Standing Floor Lamps',
+    desc: 'Warm ambient illumination for bedside nightstands, sideboards, and living room corners.',
+  },
+  'night-lights': {
+    title: 'LED Ambient Night Lights',
+    desc: 'Edge-lit laser-engraved acrylic and wood nightstands with gentle 3000K warm glow.',
+  },
+  'clocks': {
+    title: 'Laser-Crafted Wooden Clocks',
+    desc: 'Dimensional wall timepieces and minimalist desk clocks with silent German quartz movements.',
+  },
+  'wall-clocks': {
+    title: 'Artisan Wall Clocks',
+    desc: 'Statement topographic, mandala, and asymmetric walnut clocks for living rooms and executive suites.',
+  },
+  'desk-clocks': {
+    title: 'Minimalist Desk Clocks',
+    desc: 'Compact desktop circular timepieces crafted from multi-layer natural timber.',
+  },
+  'matra-haus': {
+    title: 'MATRA HAUS Design Studio',
+    desc: 'Signature architectural fixtures with fluid curved birch slats and fluted acrylic forms.',
+  },
+};
+
+const collection = COLLECTION_INFO[slug || 'all'] || {
+  title: slug ? slug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Collection',
+  desc: 'Handcrafted artisan home décor creations made in India.',
+};
+
+let products: any[] = [];
+let totalCount = 0;
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    const conditions: string[] = ['p.is_active = 1'];
+    const params: any[] = [];
+
+    // Filter by collection / category
+    if (slug && slug !== 'all') {
+      if (slug === 'matra-haus') {
+        conditions.push("p.brand_line = 'MATRA HAUS'");
+      } else {
+        conditions.push(`p.id IN (
+          SELECT pc.product_id FROM product_categories pc
+          JOIN categories c ON c.id = pc.category_id
+          WHERE c.slug = ? OR c.parent_id IN (SELECT id FROM categories WHERE slug = ?)
+        )`);
+        params.push(slug, slug);
+      }
+    }
+
+    // Filter by space tag
+    if (currentSpace) {
+      conditions.push(`p.id IN (SELECT product_id FROM product_tags WHERE tag = ?)`);
+      params.push(currentSpace);
+    }
+
+    // Filter by badge
+    if (currentBadge) {
+      conditions.push(`p.badge = ?`);
+      params.push(currentBadge);
+    }
+
+    // Filter by price range
+    if (minPrice) {
+      conditions.push(`v.price_paise >= ?`);
+      params.push(Number(minPrice) * 100);
+    }
+    if (maxPrice) {
+      conditions.push(`v.price_paise <= ?`);
+      params.push(Number(maxPrice) * 100);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    // Count total matching items
+    const countRow = await one<{ count: number }>(
+      db,
+      `SELECT COUNT(DISTINCT p.id) as count
+       FROM products p
+       LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1
+       ${whereClause}`,
+      params
+    );
+    totalCount = countRow?.count || 0;
+
+    // Sorting
+    let orderBy = 'p.is_featured DESC, p.id ASC';
+    if (currentSort === 'newest') orderBy = 'p.created_at DESC';
+    if (currentSort === 'bestseller') orderBy = 'p.is_bestseller DESC, p.id ASC';
+    if (currentSort === 'price_asc') orderBy = 'v.price_paise ASC NULLS LAST';
+    if (currentSort === 'price_desc') orderBy = 'v.price_paise DESC NULLS LAST';
+
+    // Query paginated products
+    products = await all(
+      db,
+      `SELECT p.id, p.slug, p.name, p.badge, p.brand_line,
+        v.id as default_variant_id, v.price_paise, v.compare_at_paise, v.stock,
+        m1.path as primary_image, m2.path as secondary_image
+       FROM products p
+       LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1
+       LEFT JOIN product_media m1 ON m1.product_id = p.id AND m1.is_primary = 1
+       LEFT JOIN product_media m2 ON m2.product_id = p.id AND m2.sort_order = 2 AND m2.is_watermarked = 0
+       ${whereClause}
+       ORDER BY ${orderBy}
+       LIMIT ? OFFSET ?`,
+      [...params, pageSize, offset]
+    );
+  } catch (err) {
+    console.error('Collection fetch error:', err);
+  }
+}
+
+// Fallback seed catalog if database has not been initialized yet
+if (products.length === 0 && totalCount === 0) {
+  const ALL_32 = [
+    { id: 'P01', slug: '3d-layered-wooden-circular-mandala-wall-art-with-backlit-led-glow', name: '3D Layered Wooden Circular Mandala Wall Art with Backlit LED Glow', badge: 'HOT', brand_line: null, price_paise: 499900, compare_at_paise: 599900, primary_image: '/media/products/P01/1.svg', secondary_image: '/media/products/P01/2.svg', default_variant_id: 1, stock: 24 },
+    { id: 'P02', slug: 'framed-3d-multi-layered-wooden-abstract-three-faces-wall-art', name: 'Framed 3D Multi-Layered Wooden Abstract Three Faces Wall Art', badge: null, brand_line: null, price_paise: 349900, compare_at_paise: 449900, primary_image: '/media/products/P02/4.svg', secondary_image: '/media/products/P02/5.svg', default_variant_id: 2, stock: 18 },
+    { id: 'P03', slug: '3d-multi-layered-wooden-woman-profile-silhouette-wall-art-plaque', name: '3D Multi-Layered Wooden Woman Profile Silhouette Wall Art Plaque', badge: null, brand_line: null, price_paise: 299900, compare_at_paise: 379900, primary_image: '/media/products/P03/7.svg', secondary_image: '/media/products/P03/8.svg', default_variant_id: 3, stock: 30 },
+    { id: 'P04', slug: 'geometric-cutout-wooden-artichoke-pendant-lamp-shade', name: 'Geometric Cutout Wooden Artichoke Pendant Lamp Shade', badge: null, brand_line: null, price_paise: 649900, compare_at_paise: 799900, primary_image: '/media/products/P04/10.svg', secondary_image: '/media/products/P04/11.svg', default_variant_id: 4, stock: 22 },
+    { id: 'P05', slug: 'curved-slat-wooden-lantern-table-lamp-trio', name: 'Curved Slat Wooden Lantern Table Lamp Trio', badge: 'HOT', brand_line: null, price_paise: 449900, compare_at_paise: 549900, primary_image: '/media/products/P05/13.svg', secondary_image: '/media/products/P05/14.svg', default_variant_id: 5, stock: 15 },
+    { id: 'P06', slug: 'framed-3d-multi-layered-wooden-filigree-floral-mandala-wall-art', name: 'Framed 3D Multi-Layered Wooden Filigree Floral Mandala Wall Art', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 499900, primary_image: '/media/products/P06/16.svg', secondary_image: '/media/products/P06/17.svg', default_variant_id: 6, stock: 20 },
+    { id: 'P07', slug: 'framed-3d-multi-layered-wooden-peacock-wall-art', name: 'Framed 3D Multi-Layered Wooden Peacock Wall Art', badge: null, brand_line: null, price_paise: 549900, compare_at_paise: 699900, primary_image: '/media/products/P07/18.svg', secondary_image: '/media/products/P07/19.svg', default_variant_id: 7, stock: 16 },
+    { id: 'P08', slug: 'framed-3d-multi-layered-wooden-tiger-eyes-wall-art-plaque', name: 'Framed 3D Multi-Layered Wooden Tiger Eyes Wall Art Plaque', badge: null, brand_line: null, price_paise: 429900, compare_at_paise: 529900, primary_image: '/media/products/P08/21.svg', secondary_image: '/media/products/P08/22.svg', default_variant_id: 8, stock: 14 },
+    { id: 'P09', slug: '3d-multi-layered-wooden-semi-circular-peacock-tail-fan-wall-art', name: '3D Multi-Layered Wooden Semi-Circular Peacock Tail Fan Wall Art', badge: null, brand_line: null, price_paise: 599900, compare_at_paise: 749900, primary_image: '/media/products/P09/23.svg', secondary_image: '/media/products/P09/24.svg', default_variant_id: 9, stock: 19 },
+    { id: 'P10', slug: 'semi-circular-3d-multi-layered-wooden-mandala-wall-art-headboard', name: 'Semi-Circular 3D Multi-Layered Wooden Mandala Wall Art Headboard', badge: 'HOT', brand_line: null, price_paise: 799900, compare_at_paise: 999900, primary_image: '/media/products/P10/26.svg', secondary_image: '/media/products/P10/27.svg', default_variant_id: 10, stock: 12 },
+    { id: 'P11', slug: 'full-circular-3d-multi-layered-wooden-mandala-wall-art', name: 'Full Circular 3D Multi-Layered Wooden Mandala Wall Art', badge: null, brand_line: null, price_paise: 449900, compare_at_paise: 549900, primary_image: '/media/products/P11/28.svg', secondary_image: null, default_variant_id: 11, stock: 15 },
+    { id: 'P12', slug: '3d-multi-layered-wooden-tree-of-life-circular-wall-art', name: '3D Multi-Layered Wooden Tree of Life Circular Wall Art', badge: null, brand_line: null, price_paise: 479900, compare_at_paise: 599900, primary_image: '/media/products/P12/29.svg', secondary_image: '/media/products/P12/30.svg', default_variant_id: 12, stock: 25 },
+    { id: 'P13', slug: '3d-multi-layered-wooden-lotus-flower-mandala-circular-wall-art', name: '3D Multi-Layered Wooden Lotus Flower Mandala Circular Wall Art', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 499900, primary_image: '/media/products/P13/32.svg', secondary_image: '/media/products/P13/33.svg', default_variant_id: 13, stock: 21 },
+    { id: 'P14', slug: 'scandinavian-wooden-pinecone-pendant-lamp-shade-natural-birch', name: 'Scandinavian Wooden Pinecone Pendant Lamp Shade - Natural Birch Finish', badge: null, brand_line: null, price_paise: 599900, compare_at_paise: 749900, primary_image: '/media/products/P14/35.svg', secondary_image: '/media/products/P14/38.svg', default_variant_id: 14, stock: 28 },
+    { id: 'P15', slug: 'scandinavian-wooden-pinecone-standing-floor-lamp', name: 'Scandinavian Wooden Pinecone Standing Floor Lamp', badge: null, brand_line: null, price_paise: 899900, compare_at_paise: 1099900, primary_image: '/media/products/P15/36.svg', secondary_image: null, default_variant_id: 15, stock: 10 },
+    { id: 'P16', slug: 'scandinavian-wooden-pinecone-pendant-lamp-shade-charcoal-grey', name: 'Scandinavian Wooden Pinecone Pendant Lamp Shade - Charcoal Grey Finish', badge: null, brand_line: null, price_paise: 599900, compare_at_paise: 749900, primary_image: '/media/products/P16/37.svg', secondary_image: null, default_variant_id: 16, stock: 20 },
+    { id: 'P17', slug: 'matra-haus-modern-wooden-curved-slat-pendant-lamp', name: 'MATRA HAUS Modern Wooden Curved Slat Pendant Lamp Fixture', badge: 'HOT', brand_line: 'MATRA HAUS', price_paise: 749900, compare_at_paise: 899900, primary_image: '/media/products/P17/39.svg', secondary_image: '/media/products/P17/40.svg', default_variant_id: 17, stock: 18 },
+    { id: 'P18', slug: '3d-multi-layered-wooden-mother-and-child-silhouette-wall-art-plaque', name: '3D Multi-Layered Wooden Mother and Child Silhouette Wall Art Plaque', badge: null, brand_line: null, price_paise: 349900, compare_at_paise: 449900, primary_image: '/media/products/P18/42.svg', secondary_image: '/media/products/P18/43.svg', default_variant_id: 18, stock: 26 },
+    { id: 'P19', slug: 'lotus-flower-glowing-acrylic-wood-led-ambient-night-light', name: 'Lotus Flower Glowing Acrylic and Wood LED Ambient Night Light', badge: 'NEW', brand_line: null, price_paise: 199900, compare_at_paise: 249900, primary_image: '/media/products/P19/45.svg', secondary_image: '/media/products/P19/46.svg', default_variant_id: 19, stock: 45 },
+    { id: 'P20', slug: 'minimalist-round-multi-layered-wooden-desk-clock', name: 'Minimalist Round Multi-Layered Wooden Desk Clock', badge: null, brand_line: null, price_paise: 249900, compare_at_paise: 299900, primary_image: '/media/products/P20/48.svg', secondary_image: '/media/products/P20/49.svg', default_variant_id: 20, stock: 35 },
+    { id: 'P21', slug: 'modern-asymmetric-3d-multi-layered-walnut-wooden-wall-clock', name: 'Modern Asymmetric 3D Multi-Layered Walnut Wooden Wall Clock', badge: null, brand_line: null, price_paise: 329900, compare_at_paise: 399900, primary_image: '/media/products/P21/51.svg', secondary_image: '/media/products/P21/52.svg', default_variant_id: 21, stock: 22 },
+    { id: 'P22', slug: 'intricate-3d-multi-layered-wooden-mandala-wall-clock', name: 'Intricate 3D Multi-Layered Wooden Mandala Wall Clock', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 479900, primary_image: '/media/products/P22/54.svg', secondary_image: '/media/products/P22/55.svg', default_variant_id: 22, stock: 28 },
+    { id: 'P23', slug: 'modern-topographic-contoured-3d-layered-wooden-wall-clock', name: 'Modern Topographic Contoured 3D Layered Wooden Wall Clock', badge: null, brand_line: null, price_paise: 349900, compare_at_paise: 429900, primary_image: '/media/products/P23/57.svg', secondary_image: '/media/products/P23/58.svg', default_variant_id: 23, stock: 30 },
+    { id: 'P24', slug: '3d-multi-layered-wooden-woman-portrait-red-lips-wall-art-plaque', name: '3D Multi-Layered Wooden Woman Portrait with Red Lips Wall Art Plaque', badge: null, brand_line: null, price_paise: 329900, compare_at_paise: 399900, primary_image: '/media/products/P24/60.svg', secondary_image: '/media/products/P24/61.svg', default_variant_id: 24, stock: 17 },
+    { id: 'P25', slug: 'framed-3d-multi-layered-wooden-koi-fish-shadow-box-wall-art', name: 'Framed 3D Multi-Layered Wooden Koi Fish Shadow Box Wall Art', badge: null, brand_line: null, price_paise: 599900, compare_at_paise: 749900, primary_image: '/media/products/P25/63.svg', secondary_image: '/media/products/P25/64.svg', default_variant_id: 25, stock: 19 },
+    { id: 'P26', slug: 'circular-3d-multi-layered-wooden-peacock-feather-wall-art-plaque', name: 'Circular 3D Multi-Layered Wooden Peacock Feather Wall Art Plaque', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 499900, primary_image: '/media/products/P26/66.svg', secondary_image: '/media/products/P26/67.svg', default_variant_id: 26, stock: 20 },
+    { id: 'P27', slug: 'matra-haus-aurora-red-curved-acrylic-rib-pendant-lamp', name: 'MATRA HAUS Aurora Red Curved Acrylic Rib Pendant Lamp', badge: 'HOT', brand_line: 'MATRA HAUS', price_paise: 849900, compare_at_paise: 999900, primary_image: '/media/products/P27/69.svg', secondary_image: '/media/products/P27/70.svg', default_variant_id: 27, stock: 14 },
+    { id: 'P28', slug: 'matra-haus-organic-fluted-wave-wooden-slat-pendant-light', name: 'MATRA HAUS Organic Fluted Wave Wooden Slat Pendant Light', badge: null, brand_line: 'MATRA HAUS', price_paise: 799900, compare_at_paise: 949900, primary_image: '/media/products/P28/73.svg', secondary_image: '/media/products/P28/74.svg', default_variant_id: 28, stock: 11 },
+    { id: 'P29', slug: 'framed-3d-multi-layered-wooden-tree-of-life-filigree-relief-artwork', name: 'Framed 3D Multi-Layered Wooden Tree of Life Filigree Relief Artwork', badge: null, brand_line: null, price_paise: 449900, compare_at_paise: 549900, primary_image: '/media/products/P29/75.svg', secondary_image: '/media/products/P29/77.svg', default_variant_id: 29, stock: 23 },
+    { id: 'P30', slug: 'sacred-om-aum-lotus-3d-multi-layered-wooden-mandala-wall-art', name: 'Sacred Om (Aum) Lotus 3D Multi-Layered Wooden Mandala Wall Art', badge: null, brand_line: null, price_paise: 399900, compare_at_paise: 499900, primary_image: '/media/products/P30/79.svg', secondary_image: null, default_variant_id: 30, stock: 16 },
+    { id: 'P31', slug: 'lord-ganesha-on-lotus-3d-multi-layered-colorful-wooden-wall-art', name: 'Lord Ganesha on Lotus 3D Multi-Layered Colorful Wooden Wall Art', badge: 'HOT', brand_line: null, price_paise: 499900, compare_at_paise: 649900, primary_image: '/media/products/P31/80.svg', secondary_image: null, default_variant_id: 31, stock: 14 },
+    { id: 'P32', slug: 'framed-3d-multi-layered-wooden-world-map-topographic-ocean-depth-relief', name: 'Framed 3D Multi-Layered Wooden World Map Topographic Ocean Depth Relief Art', badge: null, brand_line: null, price_paise: 899900, compare_at_paise: 1099900, primary_image: '/media/products/P32/81.svg', secondary_image: '/media/products/P32/82.svg', default_variant_id: 32, stock: 12 },
+  ];
+
+  if (slug === 'matra-haus') {
+    products = ALL_32.filter(p => p.brand_line === 'MATRA HAUS');
+  } else if (slug && slug.includes('lamp')) {
+    products = ALL_32.filter(p => p.id === 'P04' || p.id === 'P05' || p.id === 'P14' || p.id === 'P15' || p.id === 'P16' || p.id === 'P17' || p.id === 'P27' || p.id === 'P28');
+  } else if (slug && slug.includes('clock')) {
+    products = ALL_32.filter(p => ['P20', 'P21', 'P22', 'P23'].includes(p.id));
+  } else {
+    products = ALL_32.slice(offset, offset + pageSize);
+  }
+  totalCount = ALL_32.length;
+}
+
+const totalPages = Math.ceil(totalCount / pageSize);
+
+// Helper to preserve parameters
+function buildUrl(newParams: Record<string, string | number | null>) {
+  const p = new URLSearchParams(url.searchParams);
+  for (const [key, val] of Object.entries(newParams)) {
+    if (val === null || val === '') {
+      p.delete(key);
+    } else {
+      p.set(key, String(val));
+    }
+  }
+  return `?${p.toString()}`;
+}
+
+products = (products || []).map((p: any) => {
+  let m1 = p.primary_image || `/media/products/${p.id}/1.svg`;
+  if (!m1.startsWith('http://') && !m1.startsWith('https://')) {
+    if (!m1.startsWith('/')) m1 = '/' + m1;
+    if (m1.startsWith('/products/')) m1 = '/media' + m1;
+  }
+  let m2 = p.secondary_image;
+  if (m2 && !m2.startsWith('http://') && !m2.startsWith('https://')) {
+    if (!m2.startsWith('/')) m2 = '/' + m2;
+    if (m2.startsWith('/products/')) m2 = '/media' + m2;
+  }
+  return { ...p, primary_image: m1, secondary_image: m2 };
+});
+---
+
+<Base
+  title={`${collection.title} — ${site.name}`}
+  description={collection.desc}
+>
+  <!-- Collection Header -->
+  <div class="collection-header">
+    <div class="site-container">
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a href="/">Home</a></li>
+          <li><span>/</span></li>
+          <li><a href="/collections/all">Collections</a></li>
+          <li><span>/</span></li>
+          <li aria-current="page"><strong>{collection.title}</strong></li>
+        </ol>
+      </nav>
+
+      <h1 class="collection-title">{collection.title}</h1>
+      <p class="collection-desc">{collection.desc}</p>
+    </div>
+  </div>
+
+  <div class="site-container collection-layout-wrapper">
+    <!-- Filter Sidebar (sticky 260px) -->
+    <aside class="filter-sidebar" id="filter-sidebar" aria-label="Product Filters">
+      <div class="filter-sidebar__header">
+        <h3 class="filter-title">Filters</h3>
+        {(currentSpace || currentBadge || minPrice || maxPrice) && (
+          <a href={`/collections/${slug || 'all'}`} class="filter-clear-all">Reset All</a>
+        )}
+      </div>
+
+      <!-- Categories & Sub-collections -->
+      <div class="filter-group">
+        <h4 class="filter-group-title">Category</h4>
+        <ul class="filter-links-list">
+          <li class={slug === 'all' ? 'is-active' : ''}>
+            <a href={`/collections/all${buildUrl({ page: 1 })}`}>All Collections</a>
+          </li>
+          <li class={slug === 'wall-art' ? 'is-active' : ''}>
+            <a href={`/collections/wall-art${buildUrl({ page: 1 })}`}>Wall Art & Mandalas</a>
+          </li>
+          <li class={slug === 'lighting' ? 'is-active' : ''}>
+            <a href={`/collections/lighting${buildUrl({ page: 1 })}`}>Designer Lighting</a>
+          </li>
+          <li class={slug === 'clocks' ? 'is-active' : ''}>
+            <a href={`/collections/clocks${buildUrl({ page: 1 })}`}>Clocks</a>
+          </li>
+          <li class={slug === 'matra-haus' ? 'is-active' : ''}>
+            <a href={`/collections/matra-haus${buildUrl({ page: 1 })}`}>MATRA HAUS Studio</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Shop by Space Tags -->
+      <div class="filter-group">
+        <h4 class="filter-group-title">Shop by Space</h4>
+        <div class="space-pills-filter">
+          {nav.spaces.map(sp => (
+            <a
+              href={buildUrl({ space: currentSpace === sp.slug ? null : sp.slug, page: 1 })}
+              class={`filter-pill ${currentSpace === sp.slug ? 'is-active' : ''}`}
+            >
+              {sp.label}
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <!-- Badges -->
+      <div class="filter-group">
+        <h4 class="filter-group-title">Curated Tags</h4>
+        <div class="space-pills-filter">
+          <a href={buildUrl({ badge: currentBadge === 'HOT' ? null : 'HOT', page: 1 })} class={`filter-pill ${currentBadge === 'HOT' ? 'is-active' : ''}`}>
+            HOT
+          </a>
+          <a href={buildUrl({ badge: currentBadge === 'NEW' ? null : 'NEW', page: 1 })} class={`filter-pill ${currentBadge === 'NEW' ? 'is-active' : ''}`}>
+            NEW
+          </a>
+          <a href={buildUrl({ badge: currentBadge === 'SALE' ? null : 'SALE', page: 1 })} class={`filter-pill ${currentBadge === 'SALE' ? 'is-active' : ''}`}>
+            SALE
+          </a>
+        </div>
+      </div>
+
+      <!-- Price Range Slider & Inputs -->
+      <div class="filter-group">
+        <h4 class="filter-group-title">Price Range (₹)</h4>
+        <form method="GET" class="price-filter-form">
+          {currentSpace && <input type="hidden" name="space" value={currentSpace} />}
+          {currentBadge && <input type="hidden" name="badge" value={currentBadge} />}
+          {currentSort && <input type="hidden" name="sort" value={currentSort} />}
+
+          <div class="price-inputs-row">
+            <input
+              type="number"
+              name="min"
+              placeholder="Min"
+              value={minPrice}
+              class="price-range-input"
+              min="0"
+              step="500"
+            />
+            <span class="price-dash">–</span>
+            <input
+              type="number"
+              name="max"
+              placeholder="Max"
+              value={maxPrice}
+              class="price-range-input"
+              min="0"
+              step="500"
+            />
+            <button type="submit" class="price-apply-btn">Go</button>
+          </div>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Main Listing Area -->
+    <main class="collection-main">
+      <!-- Toolbar: Result Count, Grid Column Toggle, Sort Dropdown -->
+      <div class="collection-toolbar">
+        <div class="toolbar-left">
+          <span class="results-count">
+            Showing <strong>{products.length}</strong> of <strong>{totalCount || products.length}</strong> items in <em>{collection.title}</em>
+          </span>
+        </div>
+
+        <div class="toolbar-right">
+          <!-- Desktop Grid Column Toggles (2/3/4) -->
+          <div class="grid-toggles" id="grid-toggles" aria-label="Grid layout toggle">
+            <button class="grid-toggle-btn" data-cols="2" aria-label="2 columns">2</button>
+            <button class="grid-toggle-btn is-active" data-cols="3" aria-label="3 columns">3</button>
+            <button class="grid-toggle-btn" data-cols="4" aria-label="4 columns">4</button>
+          </div>
+
+          <!-- Sort Dropdown -->
+          <div class="sort-select-wrapper">
+            <label for="sort-dropdown" class="sr-only">Sort by</label>
+            <select id="sort-dropdown" class="sort-select" onchange="window.location.href = this.value">
+              <option value={buildUrl({ sort: 'featured', page: 1 })} selected={currentSort === 'featured'}>Featured Editions</option>
+              <option value={buildUrl({ sort: 'newest', page: 1 })} selected={currentSort === 'newest'}>Newest Additions</option>
+              <option value={buildUrl({ sort: 'bestseller', page: 1 })} selected={currentSort === 'bestseller'}>Best Selling</option>
+              <option value={buildUrl({ sort: 'price_asc', page: 1 })} selected={currentSort === 'price_asc'}>Price: Low to High</option>
+              <option value={buildUrl({ sort: 'price_desc', page: 1 })} selected={currentSort === 'price_desc'}>Price: High to Low</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Products Grid -->
+      {products.length > 0 ? (
+        <div class="collection-grid cols-3" id="collection-grid">
+          {products.map((prod, idx) => (
+            <ProductCard product={prod} eagerLoad={idx < 6} />
+          ))}
+        </div>
+      ) : (
+        <div class="empty-state-box">
+          <div class="empty-icon">🪵</div>
+          <h3>No matching handcrafted pieces found</h3>
+          <p>Try clearing your active filters or expanding the price range to explore more artisan items.</p>
+          <a href={`/collections/${slug || 'all'}`} class="btn-clear-filters">Clear All Filters</a>
+        </div>
+      )}
+
+      <!-- Pagination -->
+      {totalPages > 1 && (
+        <nav class="pagination-nav" aria-label="Pagination">
+          {currentPage > 1 && (
+            <a href={buildUrl({ page: currentPage - 1 })} class="pagination-btn">&larr; Previous</a>
+          )}
+          <span class="pagination-status">Page {currentPage} of {totalPages}</span>
+          {currentPage < totalPages && (
+            <a href={buildUrl({ page: currentPage + 1 })} class="pagination-btn">Next &rarr;</a>
+          )}
+        </nav>
+      )}
+    </main>
+  </div>
+</Base>
+
+<style>
+  .collection-header {
+    background: linear-gradient(135deg, #FBF7F1 0%, #F5ECDF 100%);
+    border-bottom: 1px solid var(--border, rgba(43,27,20,0.1));
+    padding: 3rem 0 2.5rem;
+  }
+
+  .breadcrumbs {
+    font-size: 0.8125rem;
+    color: var(--ink-2, #6B5A50);
+    margin-bottom: 1rem;
+  }
+
+  .breadcrumbs ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .breadcrumbs a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .breadcrumbs a:hover {
+    color: var(--accent, #B9803A);
+  }
+
+  .collection-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.75rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.15;
+  }
+
+  .collection-desc {
+    font-size: 1.0625rem;
+    color: var(--ink-2, #6B5A50);
+    max-width: 720px;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .collection-layout-wrapper {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 2.75rem;
+    padding-top: 3rem;
+    padding-bottom: 5rem;
+    align-items: start;
+  }
+
+  /* Filter Sidebar */
+  .filter-sidebar {
+    position: sticky;
+    top: 5.5rem;
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 1.5rem;
+  }
+
+  .filter-sidebar__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+    margin-bottom: 1.25rem;
+  }
+
+  .filter-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.35rem;
+    margin: 0;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .filter-clear-all {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--sale, #A8442A);
+    text-decoration: underline;
+  }
+
+  .filter-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .filter-group-title {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .filter-links-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .filter-links-list li a {
+    color: var(--ink-2, #6B5A50);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: color 0.2s;
+  }
+
+  .filter-links-list li.is-active a {
+    color: var(--accent, #B9803A);
+    font-weight: 600;
+  }
+
+  .filter-links-list li a:hover {
+    color: var(--primary, #4A2C1D);
+  }
+
+  .space-pills-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .filter-pill {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 9999px;
+    background: var(--bg, #FBF7F1);
+    border: 1px solid var(--border, rgba(43,27,20,0.12));
+    color: var(--ink, #2B1B14);
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .filter-pill:hover {
+    border-color: var(--primary, #4A2C1D);
+  }
+
+  .filter-pill.is-active {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border-color: var(--primary, #4A2C1D);
+  }
+
+  .price-inputs-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .price-range-input {
+    width: 65px;
+    padding: 0.45rem 0.5rem;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    outline: none;
+  }
+
+  .price-dash {
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .price-apply-btn {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    padding: 0.45rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Main Toolbar */
+  .collection-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.75rem;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+  }
+
+  .results-count {
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+
+  .grid-toggles {
+    display: flex;
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.12));
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .grid-toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ink-2, #6B5A50);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .grid-toggle-btn.is-active {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+  }
+
+  .sort-select {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    padding: 0.45rem 1rem 0.45rem 0.75rem;
+    font-size: 0.84rem;
+    color: var(--ink, #2B1B14);
+    outline: none;
+    cursor: pointer;
+  }
+
+  /* Grid layouts */
+  .collection-grid {
+    display: grid;
+    gap: 1.75rem;
+  }
+
+  .collection-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .collection-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .collection-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* Empty State */
+  .empty-state-box {
+    background: #FFFFFF;
+    border: 1px dashed var(--border, rgba(43,27,20,0.2));
+    border-radius: var(--radius, 10px);
+    padding: 4rem 2rem;
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  .empty-state-box h3 {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.6rem;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .empty-state-box p {
+    color: var(--ink-2, #6B5A50);
+    margin: 0 0 1.5rem 0;
+  }
+
+  .btn-clear-filters {
+    display: inline-block;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    padding: 0.65rem 1.5rem;
+    border-radius: 6px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  /* Pagination */
+  .pagination-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 3.5rem;
+  }
+
+  .pagination-btn {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    padding: 0.55rem 1.25rem;
+    border-radius: 6px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--primary, #4A2C1D);
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+
+  .pagination-btn:hover {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+  }
+
+  .pagination-status {
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  @media (max-width: 1024px) {
+    .collection-layout-wrapper {
+      grid-template-columns: 1fr;
+    }
+    .filter-sidebar {
+      position: static;
+    }
+    .grid-toggles {
+      display: none;
+    }
+    .collection-grid.cols-3,
+    .collection-grid.cols-4 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .collection-grid.cols-2,
+    .collection-grid.cols-3,
+    .collection-grid.cols-4 {
+      grid-template-columns: 1fr;
+    }
+    .collection-toolbar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+  }
+</style>
+
+<script>
+  // Grid column toggles (2, 3, 4)
+  const toggleBtns = document.querySelectorAll('.grid-toggle-btn');
+  const grid = document.getElementById('collection-grid');
+
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cols = btn.getAttribute('data-cols');
+      toggleBtns.forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+
+      if (grid) {
+        grid.classList.remove('cols-2', 'cols-3', 'cols-4');
+        grid.classList.add(`cols-${cols}`);
+      }
+    });
+  });
+</script>

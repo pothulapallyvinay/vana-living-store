@@ -1,0 +1,424 @@
+---
+// src/components/HeroSlider.astro
+export interface HeroSlide {
+  id: number;
+  tag: string;
+  headline: string;
+  subline: string;
+  ctaText: string;
+  ctaUrl: string;
+  secondaryCtaText?: string;
+  secondaryCtaUrl?: string;
+  image: string;
+  aspectClass?: string;
+}
+
+const slides: HeroSlide[] = [
+  {
+    id: 1,
+    tag: "HANDCRAFTED ARCHITECTURAL ART",
+    headline: "Intricate 3D Multi-Layered Wooden Mandalas & Wall Sculptures",
+    subline: "Laser-cut in fine birch ply and solid walnut, finished by hand with warm ambient LED glow for modern Indian interiors.",
+    ctaText: "Explore Mandala Collection",
+    ctaUrl: "/collections/mandala-wall-art",
+    secondaryCtaText: "View All Wall Art",
+    secondaryCtaUrl: "/collections/wall-art",
+    image: "/media/products/P01/2.svg",
+  },
+  {
+    id: 2,
+    tag: "DESIGN STUDIO SPOTLIGHT",
+    headline: "MATRA HAUS Curved Wooden Slat Pendant Fixtures",
+    subline: "Sculptural lighting installations that transform living rooms and dining spaces through graceful acoustic timber curves.",
+    ctaText: "Discover MATRA HAUS",
+    ctaUrl: "/collections/matra-haus",
+    secondaryCtaText: "All Designer Lighting",
+    secondaryCtaUrl: "/collections/lighting",
+    image: "/media/products/P17/39.svg",
+  },
+  {
+    id: 3,
+    tag: "TIMEPIECE SCULPTURES",
+    headline: "Precision Topographic & Asymmetric Wooden Clocks",
+    subline: "Where multi-tier relief woodwork meets silent German sweep clockwork. Statements for offices, living rooms, and gifting.",
+    ctaText: "Shop Artisan Clocks",
+    ctaUrl: "/collections/clocks",
+    secondaryCtaText: "Shop by Space",
+    secondaryCtaUrl: "/collections/all?space=living-room",
+    image: "/media/products/P21/52.svg",
+  }
+];
+---
+
+<section class="hero-slider-section" id="hero-slider" aria-label="Hero Carousel">
+  <div class="hero-slider-container">
+    {slides.map((slide, idx) => (
+      <div
+        class={`hero-slide ${idx === 0 ? 'is-active' : ''}`}
+        data-slide-index={idx}
+        role="group"
+        aria-roledescription="slide"
+        aria-label={`${idx + 1} of ${slides.length}: ${slide.headline}`}
+      >
+        <div class="hero-slide__content">
+          <span class="hero-tag animate-in">{slide.tag}</span>
+          <h1 class="hero-headline animate-in">{slide.headline}</h1>
+          <p class="hero-subline animate-in">{slide.subline}</p>
+          <div class="hero-cta-group animate-in">
+            <a href={slide.ctaUrl} class="btn-hero-primary">{slide.ctaText} &rarr;</a>
+            {slide.secondaryCtaText && slide.secondaryCtaUrl && (
+              <a href={slide.secondaryCtaUrl} class="btn-hero-secondary">{slide.secondaryCtaText}</a>
+            )}
+          </div>
+        </div>
+
+        <div class="hero-slide__image-wrap">
+          <div class="image-art-frame">
+            <img
+              src={slide.image}
+              alt={slide.headline}
+              class="hero-img"
+              loading={idx === 0 ? "eager" : "lazy"}
+              fetchpriority={idx === 0 ? "high" : "auto"}
+              width="640"
+              height="640"
+            />
+            <div class="ambient-glow"></div>
+          </div>
+        </div>
+      </div>
+    ))}
+
+    <!-- Navigation & Indicators -->
+    <div class="slider-controls">
+      <div class="slider-dots" role="tablist" aria-label="Select slide">
+        {slides.map((_, idx) => (
+          <button
+            class={`slider-dot ${idx === 0 ? 'is-active' : ''}`}
+            data-dot-index={idx}
+            role="tab"
+            aria-selected={idx === 0 ? 'true' : 'false'}
+            aria-label={`Go to slide ${idx + 1}`}
+          ></button>
+        ))}
+      </div>
+
+      <div class="slider-arrows">
+        <button class="slider-arrow prev" id="hero-prev" aria-label="Previous slide">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <button class="slider-arrow next" id="hero-next" aria-label="Next slide">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero-slider-section {
+    position: relative;
+    background: linear-gradient(135deg, #FBF7F1 0%, #F5ECDF 100%);
+    overflow: hidden;
+    border-bottom: 1px solid var(--border, rgba(43,27,20,0.1));
+  }
+
+  .hero-slider-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+    min-height: 560px;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-slide {
+    position: absolute;
+    inset: 0;
+    padding: 4rem 2rem 5rem;
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 3.5rem;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.5s;
+    pointer-events: none;
+  }
+
+  .hero-slide.is-active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    position: relative;
+  }
+
+  .hero-tag {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent, #B9803A);
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+
+  .hero-headline {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 3.1rem;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1.25rem 0;
+    letter-spacing: -0.01em;
+  }
+
+  .hero-subline {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--ink-2, #6B5A50);
+    margin: 0 0 2rem 0;
+    max-width: 540px;
+  }
+
+  .hero-cta-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn-hero-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    padding: 0.85rem 1.75rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 14px rgba(74, 44, 29, 0.25);
+  }
+
+  .btn-hero-primary:hover {
+    background: #3A2013;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(74, 44, 29, 0.35);
+  }
+
+  .btn-hero-secondary {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    color: var(--primary, #4A2C1D);
+    border: 1px solid rgba(74, 44, 29, 0.3);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    padding: 0.85rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-hero-secondary:hover {
+    background: rgba(74, 44, 29, 0.05);
+    border-color: var(--primary, #4A2C1D);
+  }
+
+  .hero-slide__image-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .image-art-frame {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 1 / 1;
+    border-radius: 16px;
+    background: #FFFFFF;
+    box-shadow: 0 20px 50px rgba(43, 27, 20, 0.12);
+    overflow: hidden;
+    border: 1px solid rgba(185, 128, 58, 0.2);
+  }
+
+  .hero-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .hero-slide:hover .hero-img {
+    transform: scale(1.03);
+  }
+
+  .ambient-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 50%, rgba(185, 128, 58, 0.1) 0%, transparent 70%);
+  }
+
+  /* Slider Controls */
+  .slider-controls {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 2rem;
+    right: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .slider-dots {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .slider-dot {
+    width: 28px;
+    height: 4px;
+    background: rgba(74, 44, 29, 0.2);
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    padding: 0;
+  }
+
+  .slider-dot.is-active {
+    width: 48px;
+    background: var(--accent, #B9803A);
+  }
+
+  .slider-arrows {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .slider-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(43,27,20,0.1);
+    color: var(--primary, #4A2C1D);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .slider-arrow:hover {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+  }
+
+  @media (max-width: 1024px) {
+    .hero-headline {
+      font-size: 2.3rem;
+    }
+    .hero-slide {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      padding: 3rem 1.5rem 4.5rem;
+      text-align: center;
+    }
+    .hero-subline {
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-cta-group {
+      justify-content: center;
+    }
+    .image-art-frame {
+      max-width: 380px;
+    }
+  }
+</style>
+
+<script>
+  const slider = document.getElementById('hero-slider');
+  if (slider) {
+    const slides = slider.querySelectorAll('.hero-slide');
+    const dots = slider.querySelectorAll('.slider-dot');
+    const prevBtn = document.getElementById('hero-prev');
+    const nextBtn = document.getElementById('hero-next');
+    let currentIndex = 0;
+    let timer: number | null = null;
+
+    function showSlide(index: number) {
+      if (index < 0) index = slides.length - 1;
+      if (index >= slides.length) index = 0;
+      currentIndex = index;
+
+      slides.forEach((s, i) => {
+        if (i === currentIndex) {
+          s.classList.add('is-active');
+        } else {
+          s.classList.remove('is-active');
+        }
+      });
+
+      dots.forEach((d, i) => {
+        if (i === currentIndex) {
+          d.classList.add('is-active');
+          d.setAttribute('aria-selected', 'true');
+        } else {
+          d.classList.remove('is-active');
+          d.setAttribute('aria-selected', 'false');
+        }
+      });
+    }
+
+    function nextSlide() {
+      showSlide(currentIndex + 1);
+    }
+
+    function startAuto() {
+      if (!timer) {
+        timer = window.setInterval(nextSlide, 6000);
+      }
+    }
+
+    function stopAuto() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    prevBtn?.addEventListener('click', () => {
+      stopAuto();
+      showSlide(currentIndex - 1);
+      startAuto();
+    });
+
+    nextBtn?.addEventListener('click', () => {
+      stopAuto();
+      showSlide(currentIndex + 1);
+      startAuto();
+    });
+
+    dots.forEach(dot => {
+      dot.addEventListener('click', () => {
+        stopAuto();
+        const idx = parseInt(dot.getAttribute('data-dot-index') || '0', 10);
+        showSlide(idx);
+        startAuto();
+      });
+    });
+
+    slider.addEventListener('mouseenter', stopAuto);
+    slider.addEventListener('mouseleave', startAuto);
+    startAuto();
+  }
+</script>

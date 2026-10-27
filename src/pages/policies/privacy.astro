@@ -1,0 +1,54 @@
+---
+// src/pages/policies/privacy.astro
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config/site';
+---
+
+<Base title={`Privacy Policy — ${site.name}`}>
+  <div class="site-container content-page-container policy-container">
+    <span class="policy-tag">LEGAL & COMPLIANCE</span>
+    <h1 class="policy-title">Privacy Policy</h1>
+    <p class="policy-update">Last updated: October 2026</p>
+
+    <div class="policy-body">
+      <h2>1. Information We Collect</h2>
+      <p>
+        When you make a purchase or register an account on {site.name}, we collect only the necessary information to process and deliver your order: your name, shipping address, billing address, email address, and 10-digit telephone number.
+      </p>
+
+      <h2>2. How Your Information Is Used</h2>
+      <ul>
+        <li>To fulfill, pack, and courier your physical handcrafted order.</li>
+        <li>To send invoice receipts and real-time shipment tracking alerts via WhatsApp, SMS, or email.</li>
+        <li>To authenticate your logged-in session securely using SHA-256 hashed session identifiers.</li>
+      </ul>
+
+      <h2>3. Payment Security & Zero Card Storage</h2>
+      <p>
+        All digital payment transactions are conducted through <strong>Razorpay</strong>. {site.name} never captures, views, or stores your credit card numbers, debit card PINs, CVVs, or NetBanking login passwords on our Cloudflare infrastructure.
+      </p>
+
+      <h2>4. Third-Party Disclosures</h2>
+      <p>
+        We do not sell, trade, or rent your personal identifiable information. We share customer shipping addresses strictly with verified courier partners (e.g. Blue Dart, Delhivery) solely for the purpose of completing physical doorstep parcel delivery.
+      </p>
+
+      <h2>5. Contacting Our Data Privacy Team</h2>
+      <p>
+        For inquiries regarding your personal data or to request account deletion, contact us at <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.
+      </p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .policy-container { padding-top: 3.5rem; padding-bottom: 6rem; max-width: 840px; }
+  .policy-tag { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent, #B9803A); }
+  .policy-title { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 2.75rem; color: var(--primary, #4A2C1D); margin: 0.5rem 0 0.25rem; }
+  .policy-update { font-size: 0.8125rem; color: var(--ink-2, #6B5A50); margin-bottom: 2.5rem; }
+  .policy-body h2 { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 1.5rem; color: var(--primary, #4A2C1D); margin: 2rem 0 0.75rem; }
+  .policy-body p, .policy-body li { font-size: 0.95rem; line-height: 1.7; color: var(--ink-2, #6B5A50); }
+  .policy-body ul { padding-left: 1.25rem; margin-bottom: 1.25rem; }
+  .policy-body li { margin-bottom: 0.5rem; }
+  .policy-body a { color: var(--accent, #B9803A); font-weight: 600; }
+</style>

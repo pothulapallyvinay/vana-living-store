@@ -1,0 +1,54 @@
+---
+// src/pages/admin/users.astro
+// User accounts management in admin
+import Admin from '../../layouts/Admin.astro';
+import { getDB, all } from '../../lib/db';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+let users: any[] = [];
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    users = await all(db, `SELECT id, first_name, last_name, email, phone, role, created_at FROM users ORDER BY id ASC`);
+  } catch {}
+}
+---
+
+<Admin title="User Accounts" activeNav="users">
+  <div class="admin-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+      <h2 style="font-family:var(--admin-font-head);font-size:1.5rem;color:var(--admin-primary);margin:0;">Registered Members & Staff ({users.length})</h2>
+    </div>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Role</th>
+            <th>Registered Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map(u => (
+            <tr>
+              <td>{u.id}</td>
+              <td><strong>{u.first_name} {u.last_name}</strong></td>
+              <td>{u.email}</td>
+              <td>{u.phone ? `+91 ${u.phone}` : '—'}</td>
+              <td>
+                <span class={`status-badge ${u.role === 'super_admin' ? 'status-badge--cancelled' : u.role === 'admin' ? 'status-badge--processing' : 'status-badge--delivered'}`}>
+                  {u.role.toUpperCase()}
+                </span>
+              </td>
+              <td>{new Date(u.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</Admin>

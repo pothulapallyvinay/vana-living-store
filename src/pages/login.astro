@@ -1,0 +1,271 @@
+---
+// src/pages/login.astro
+// Centered login card (max 460px) with PBKDF2 session authentication
+import Base from '../layouts/Base.astro';
+import { site } from '../config/site';
+
+const user = (Astro.locals as any).user;
+const redirectParam = Astro.url.searchParams.get('redirect') || (user?.role === 'admin' || user?.role === 'super_admin' ? '/admin' : '/account');
+
+if (user) {
+  return Astro.redirect(redirectParam);
+}
+---
+
+<Base title={`Sign In — ${site.name}`}>
+  <div class="auth-page-wrapper">
+    <div class="auth-card">
+      <div class="auth-card-header">
+        <span class="auth-logo-mark">⚜</span>
+        <h1 class="auth-title">Welcome Back</h1>
+        <p class="auth-subtitle">Sign in to track orders, manage addresses, and access saved wishlist pieces.</p>
+      </div>
+
+      <div id="auth-alert" class="auth-alert" style="display:none;" role="alert"></div>
+
+      {redirectParam && redirectParam !== '/account' && redirectParam !== '/admin' && (
+        <div class="auth-wishlist-notice">
+          <span class="notice-heart">❤️</span>
+          <span>Please sign in to add this handcrafted piece to your personal wishlist.</span>
+        </div>
+      )}
+
+      <form id="login-form" class="auth-form" novalidate>
+        <input type="hidden" name="redirect" value={redirectParam} />
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="you@example.com"
+          />
+        </div>
+
+        <div class="form-group">
+          <div class="label-split">
+            <label for="password">Password</label>
+            <a href="#forgot" class="forgot-link" onclick="alert('Password reset link will be sent to your registered email.')">Forgot?</a>
+          </div>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            placeholder="••••••••"
+          />
+        </div>
+
+        <button type="submit" id="btn-login-submit" class="btn-auth-submit">
+          <span>Sign In</span>
+        </button>
+      </form>
+
+      <div class="auth-card-footer">
+        <p>Don't have an artisan account? <a href={`/register${redirectParam ? `?redirect=${encodeURIComponent(redirectParam)}` : ''}`}>Create Account</a></p>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .auth-page-wrapper {
+    min-height: calc(100vh - 280px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 1.5rem;
+    background: linear-gradient(135deg, #FBF7F1 0%, #F5ECDF 100%);
+  }
+
+  .auth-card {
+    width: 100%;
+    max-width: 460px;
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(43, 27, 20, 0.08);
+  }
+
+  .auth-card-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .auth-logo-mark {
+    font-size: 2rem;
+    color: var(--accent, #B9803A);
+    display: inline-block;
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .auth-subtitle {
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .auth-alert {
+    background: #FEE2E2;
+    border: 1px solid #FCA5A5;
+    color: #991B1B;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.84rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--ink, #2B1B14);
+    margin-bottom: 0.4rem;
+  }
+
+  .label-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .forgot-link {
+    font-size: 0.75rem;
+    color: var(--accent, #B9803A);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: var(--ink, #2B1B14);
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus {
+    border-color: var(--accent, #B9803A);
+    box-shadow: 0 0 0 3px rgba(185, 128, 58, 0.15);
+  }
+
+  .btn-auth-submit {
+    width: 100%;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-auth-submit:hover {
+    background: #3A2013;
+  }
+
+  .auth-card-footer {
+    text-align: center;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(43,27,20,0.08);
+    font-size: 0.84rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .auth-wishlist-notice {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #FFF5F5;
+    border: 1px solid #FECACA;
+    color: #991B1B;
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    line-height: 1.4;
+  }
+  .notice-heart {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .auth-card-footer a {
+    color: var(--accent, #B9803A);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .auth-card-footer a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<script>
+  const form = document.getElementById('login-form') as HTMLFormElement | null;
+  const alertBox = document.getElementById('auth-alert');
+  const btn = document.getElementById('btn-login-submit') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form || !alertBox || !btn) return;
+    alertBox.style.display = 'none';
+
+    const formData = new FormData(form);
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const redirectUrl = formData.get('redirect') as string || '/account';
+
+    btn.disabled = true;
+    btn.textContent = 'Signing In...';
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, redirect: redirectUrl }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = data.redirect || redirectUrl;
+      } else {
+        alertBox.textContent = data.error || 'Invalid credentials.';
+        alertBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    } catch {
+      alertBox.textContent = 'Network error. Please try again.';
+      alertBox.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+</script>

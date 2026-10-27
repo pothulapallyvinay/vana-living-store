@@ -1,0 +1,131 @@
+---
+// src/components/PincodeChecker.astro
+import { shipping } from '../config/site';
+---
+
+<div class="pincode-checker" id="pincode-checker">
+  <label for="pincode-input" class="pincode-label">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+    <span>Check Delivery & Serviceability in India</span>
+  </label>
+  <div class="pincode-form">
+    <input
+      type="text"
+      id="pincode-input"
+      class="pincode-input"
+      placeholder="Enter 6-digit PIN code"
+      maxlength="6"
+      pattern="[0-9]{6}"
+      inputmode="numeric"
+    />
+    <button type="button" id="pincode-btn" class="pincode-btn">Check</button>
+  </div>
+  <div class="pincode-result" id="pincode-result" aria-live="polite"></div>
+</div>
+
+<style>
+  .pincode-checker {
+    background: var(--bg, #FBF7F1);
+    border: 1px solid var(--border, rgba(43,27,20,0.12));
+    border-radius: var(--radius, 10px);
+    padding: 1.1rem;
+    margin: 1.5rem 0;
+  }
+
+  .pincode-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--primary, #4A2C1D);
+    margin-bottom: 0.65rem;
+  }
+
+  .pincode-form {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .pincode-input {
+    flex: 1;
+    border: 1px solid rgba(43,27,20,0.15);
+    background: #FFFFFF;
+    border-radius: 6px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.875rem;
+    color: var(--ink, #2B1B14);
+    letter-spacing: 0.05em;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .pincode-input:focus {
+    border-color: var(--accent, #B9803A);
+    box-shadow: 0 0 0 3px rgba(185, 128, 58, 0.15);
+  }
+
+  .pincode-btn {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .pincode-btn:hover {
+    background: var(--accent, #B9803A);
+  }
+
+  .pincode-result {
+    font-size: 0.8125rem;
+    margin-top: 0.65rem;
+    min-height: 1.2rem;
+  }
+</style>
+
+<script>
+  const input = document.getElementById('pincode-input') as HTMLInputElement | null;
+  const btn = document.getElementById('pincode-btn');
+  const result = document.getElementById('pincode-result');
+
+  async function checkPin() {
+    if (!input || !result) return;
+    const pin = input.value.trim();
+    if (!/^[1-9][0-9]{5}$/.test(pin)) {
+      result.innerHTML = '<span style="color:#A8442A;">Please enter a valid 6-digit Indian PIN code.</span>';
+      return;
+    }
+
+    result.innerHTML = '<span style="color:#6B5A50;">Checking delivery estimate...</span>';
+    try {
+      const res = await fetch(`/api/pincode?pin=${pin}`);
+      const data = await res.json();
+      if (res.ok && data.serviceable) {
+        result.innerHTML = `
+          <div style="color:#2F6B4F;display:flex;flex-direction:column;gap:0.25rem;">
+            <span>✓ <strong>Serviceable to ${data.city || 'your area'}, ${data.state || 'India'}</strong></span>
+            <span style="color:#6B5A50;">📦 Estimated delivery in <strong>${data.delivery_days || '5-7'} business days</strong></span>
+            <span style="color:#6B5A50;">💵 Cash on Delivery (COD) is <strong>${data.cod_available ? 'Available' : 'Prepaid Only'}</strong></span>
+          </div>
+        `;
+      } else {
+        result.innerHTML = `<span style="color:#A8442A;">${data.message || 'Location temporarily not serviceable by our primary couriers.'}</span>`;
+      }
+    } catch {
+      result.innerHTML = '<span style="color:#2F6B4F;">✓ Estimated delivery in 5-7 business days via Express Courier.</span>';
+    }
+  }
+
+  btn?.addEventListener('click', checkPin);
+  input?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      checkPin();
+    }
+  });
+</script>

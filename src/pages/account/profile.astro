@@ -1,0 +1,92 @@
+---
+// src/pages/account/profile.astro
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config/site';
+
+const user = (Astro.locals as any).user;
+if (!user) return Astro.redirect('/login?redirect=/account/profile');
+---
+
+<Base title={`Profile Details — ${site.name}`}>
+  <div class="site-container account-container">
+    <div class="account-layout">
+      <!-- Sidebar -->
+      <aside class="account-sidebar">
+        <div class="user-avatar-card">
+          <div class="avatar-circle">{user.first_name[0]}{user.last_name[0]}</div>
+          <strong class="user-display-name">{user.first_name} {user.last_name}</strong>
+          <span class="user-email-text">{user.email}</span>
+        </div>
+        <nav class="account-nav-list">
+          <a href="/account" class="account-nav-link"><span>📊</span><span>Dashboard</span></a>
+          <a href="/account/orders" class="account-nav-link"><span>📦</span><span>My Orders</span></a>
+          <a href="/account/wishlist" class="account-nav-link"><span>❤️</span><span>My Wishlist</span></a>
+          <a href="/account/profile" class="account-nav-link is-active"><span>👤</span><span>Profile Details</span></a>
+          <a href="/account/addresses" class="account-nav-link"><span>📍</span><span>Saved Addresses</span></a>
+          <a href="/account/password" class="account-nav-link"><span>🔑</span><span>Security & Password</span></a>
+          <a href="/logout" class="account-nav-link text-danger"><span>🚪</span><span>Log Out</span></a>
+        </nav>
+      </aside>
+
+      <!-- Main Panel -->
+      <main class="account-main">
+        <h1 class="account-heading">Profile Details</h1>
+        <p class="account-sub">Your personal identity and contact preferences.</p>
+
+        <div class="profile-card">
+          <form id="profile-form">
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>First Name</label>
+                <input type="text" value={user.first_name} readonly class="input-readonly" />
+              </div>
+              <div class="form-group">
+                <label>Last Name</label>
+                <input type="text" value={user.last_name} readonly class="input-readonly" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" value={user.email} readonly class="input-readonly" />
+              <span class="field-hint">Email address is permanently linked to your verified orders.</span>
+            </div>
+
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="tel" value={user.phone || '+91 Not provided'} readonly class="input-readonly" />
+            </div>
+
+            <div class="account-badge-box">
+              <span>Account Type: <strong>{user.role.toUpperCase()} MEMBER</strong></span>
+            </div>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .account-container { padding-top: 3rem; padding-bottom: 6rem; }
+  .account-layout { display: grid; grid-template-columns: 260px 1fr; gap: 3rem; align-items: start; }
+  .account-sidebar { background: #FFFFFF; border: 1px solid var(--border, rgba(43,27,20,0.1)); border-radius: var(--radius, 10px); overflow: hidden; position: sticky; top: 5.5rem; }
+  .user-avatar-card { padding: 1.75rem 1.5rem; background: #FAF5EE; border-bottom: 1px solid rgba(43,27,20,0.08); display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .avatar-circle { width: 60px; height: 60px; border-radius: 50%; background: var(--primary, #4A2C1D); color: #E2B273; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .user-display-name { font-size: 1.05rem; color: var(--primary, #4A2C1D); }
+  .user-email-text { font-size: 0.75rem; color: var(--ink-2, #6B5A50); }
+  .account-nav-list { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+  .account-nav-link { display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: var(--ink, #2B1B14); text-decoration: none; }
+  .account-nav-link.is-active { background: var(--primary, #4A2C1D); color: #FFFFFF; font-weight: 600; }
+  .text-danger { color: #A8442A !important; }
+  .account-heading { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 2.3rem; font-weight: 700; color: var(--primary, #4A2C1D); margin: 0 0 0.4rem; }
+  .account-sub { font-size: 0.95rem; color: var(--ink-2, #6B5A50); margin: 0 0 2rem; }
+  .profile-card { background: #FFFFFF; border: 1px solid var(--border, rgba(43,27,20,0.1)); border-radius: var(--radius, 10px); padding: 2rem; max-width: 600px; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label { display: block; font-size: 0.84rem; font-weight: 600; color: var(--ink, #2B1B14); margin-bottom: 0.35rem; }
+  .input-readonly { width: 100%; padding: 0.65rem 0.85rem; border: 1px solid rgba(43,27,20,0.12); border-radius: 6px; background: #F8F6F4; color: var(--ink-2, #6B5A50); font-size: 0.9rem; box-sizing: border-box; }
+  .field-hint { font-size: 0.75rem; color: var(--ink-2, #6B5A50); display: block; margin-top: 0.25rem; }
+  .account-badge-box { background: #FAF5EE; padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.84rem; color: var(--primary, #4A2C1D); margin-top: 1rem; }
+  @media (max-width: 900px) { .account-layout { grid-template-columns: 1fr; } }
+</style>

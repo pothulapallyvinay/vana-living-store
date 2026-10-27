@@ -1,0 +1,98 @@
+---
+// src/pages/account/addresses.astro
+import Base from '../../layouts/Base.astro';
+import { site } from '../../config/site';
+import { getDB, all } from '../../lib/db';
+import { INDIAN_STATES } from '../../lib/validate';
+
+const user = (Astro.locals as any).user;
+if (!user) return Astro.redirect('/login?redirect=/account/addresses');
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+let addresses: any[] = [];
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    addresses = await all(db, `SELECT * FROM addresses WHERE user_id = ? ORDER BY is_default DESC, id DESC`, [user.id]);
+  } catch {}
+}
+---
+
+<Base title={`Saved Addresses — ${site.name}`}>
+  <div class="site-container account-container">
+    <div class="account-layout">
+      <!-- Sidebar -->
+      <aside class="account-sidebar">
+        <div class="user-avatar-card">
+          <div class="avatar-circle">{user.first_name[0]}{user.last_name[0]}</div>
+          <strong class="user-display-name">{user.first_name} {user.last_name}</strong>
+          <span class="user-email-text">{user.email}</span>
+        </div>
+        <nav class="account-nav-list">
+          <a href="/account" class="account-nav-link"><span>📊</span><span>Dashboard</span></a>
+          <a href="/account/orders" class="account-nav-link"><span>📦</span><span>My Orders</span></a>
+          <a href="/account/wishlist" class="account-nav-link"><span>❤️</span><span>My Wishlist</span></a>
+          <a href="/account/profile" class="account-nav-link"><span>👤</span><span>Profile Details</span></a>
+          <a href="/account/addresses" class="account-nav-link is-active"><span>📍</span><span>Saved Addresses</span></a>
+          <a href="/account/password" class="account-nav-link"><span>🔑</span><span>Security & Password</span></a>
+          <a href="/logout" class="account-nav-link text-danger"><span>🚪</span><span>Log Out</span></a>
+        </nav>
+      </aside>
+
+      <!-- Main Panel -->
+      <main class="account-main">
+        <div class="header-split">
+          <div>
+            <h1 class="account-heading">Saved Addresses</h1>
+            <p class="account-sub">Manage your shipping destinations across India.</p>
+          </div>
+        </div>
+
+        <div class="addresses-grid">
+          {addresses.length > 0 ? (
+            addresses.map(a => (
+              <div class="address-card">
+                {a.is_default === 1 && <span class="default-badge">DEFAULT ADDRESS</span>}
+                <strong class="addr-name">{a.name}</strong>
+                <p class="addr-lines">
+                  {a.line1}<br />
+                  {a.line2 && <>{a.line2}<br /></>}
+                  {a.city}, {a.state} — {a.pincode}<br />
+                  India<br />
+                  Phone: +91 {a.phone}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div class="empty-addr-card">
+              <p>Addresses entered during checkout will be automatically preserved here for 1-click reordering.</p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .account-container { padding-top: 3rem; padding-bottom: 6rem; }
+  .account-layout { display: grid; grid-template-columns: 260px 1fr; gap: 3rem; align-items: start; }
+  .account-sidebar { background: #FFFFFF; border: 1px solid var(--border, rgba(43,27,20,0.1)); border-radius: var(--radius, 10px); overflow: hidden; position: sticky; top: 5.5rem; }
+  .user-avatar-card { padding: 1.75rem 1.5rem; background: #FAF5EE; border-bottom: 1px solid rgba(43,27,20,0.08); display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .avatar-circle { width: 60px; height: 60px; border-radius: 50%; background: var(--primary, #4A2C1D); color: #E2B273; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; font-weight: 700; margin-bottom: 0.75rem; }
+  .user-display-name { font-size: 1.05rem; color: var(--primary, #4A2C1D); }
+  .user-email-text { font-size: 0.75rem; color: var(--ink-2, #6B5A50); }
+  .account-nav-list { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
+  .account-nav-link { display: flex; align-items: center; gap: 0.65rem; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: var(--ink, #2B1B14); text-decoration: none; }
+  .account-nav-link.is-active { background: var(--primary, #4A2C1D); color: #FFFFFF; font-weight: 600; }
+  .text-danger { color: #A8442A !important; }
+  .account-heading { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 2.3rem; font-weight: 700; color: var(--primary, #4A2C1D); margin: 0 0 0.4rem; }
+  .account-sub { font-size: 0.95rem; color: var(--ink-2, #6B5A50); margin: 0 0 2rem; }
+  .addresses-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+  .address-card { background: #FFFFFF; border: 1px solid var(--border, rgba(43,27,20,0.1)); border-radius: var(--radius, 10px); padding: 1.5rem; position: relative; }
+  .default-badge { position: absolute; top: 1.25rem; right: 1.25rem; font-size: 0.625rem; font-weight: 700; background: var(--primary, #4A2C1D); color: #FFFFFF; padding: 0.2rem 0.5rem; border-radius: 4px; }
+  .addr-name { display: block; font-size: 1rem; color: var(--primary, #4A2C1D); margin-bottom: 0.5rem; }
+  .addr-lines { font-size: 0.875rem; color: var(--ink-2, #6B5A50); line-height: 1.6; margin: 0; }
+  .empty-addr-card { grid-column: span 2; background: #FFFFFF; border: 1px dashed rgba(43,27,20,0.2); border-radius: 10px; padding: 3rem; text-align: center; color: var(--ink-2, #6B5A50); }
+  @media (max-width: 900px) { .account-layout { grid-template-columns: 1fr; } .addresses-grid { grid-template-columns: 1fr; } }
+</style>

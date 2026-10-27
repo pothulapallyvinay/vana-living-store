@@ -1,0 +1,133 @@
+---
+// src/pages/admin/index.astro
+// Admin Dashboard with live metrics, today's revenue, pending orders, and recent orders
+import Admin from '../../layouts/Admin.astro';
+import { getDB, all, one } from '../../lib/db';
+import { formatPrice } from '../../lib/format';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+
+let todayOrdersCount = 0;
+let monthRevenuePaise = 0;
+let pendingOrdersCount = 0;
+let lowStockCount = 0;
+let recentOrders: any[] = [];
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+
+    // Today's orders
+    const todayRow = await one<{ count: number }>(db, `
+      SELECT COUNT(*) as count FROM orders
+      WHERE date(created_at) = date('now')
+    `);
+    todayOrdersCount = todayRow?.count || 0;
+
+    // Month revenue (paid only)
+    const revRow = await one<{ revenue: number }>(db, `
+      SELECT COALESCE(SUM(total_paise), 0) as revenue FROM orders
+      WHERE payment_status = 'paid' AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+    `);
+    monthRevenuePaise = revRow?.revenue || 0;
+
+    // Pending orders
+    const pendingRow = await one<{ count: number }>(db, `
+      SELECT COUNT(*) as count FROM orders WHERE status = 'pending_payment'
+    `);
+    pendingOrdersCount = pendingRow?.count || 0;
+
+    // Low stock variants (stock < 5)
+    const lowStockRow = await one<{ count: number }>(db, `
+      SELECT COUNT(*) as count FROM product_variants WHERE stock < 5 AND is_active = 1
+    `);
+    lowStockCount = lowStockRow?.count || 0;
+
+    // Recent orders
+    recentOrders = await all(db, `
+      SELECT * FROM orders ORDER BY id DESC LIMIT 10
+    `);
+  } catch (err) {
+    console.error('Admin metrics error:', err);
+  }
+}
+---
+
+<Admin title="Store Overview Dashboard" activeNav="dashboard">
+  <!-- Metric Stat Cards Grid -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1.5rem;margin-bottom:2rem;">
+    <div class="admin-card" style="margin-bottom:0;">
+      <span style="font-size:0.75rem;font-weight:700;color:var(--admin-ink-muted);text-transform:uppercase;letter-spacing:0.05em;">Today's Orders</span>
+      <div style="font-size:2rem;font-weight:700;color:var(--admin-primary);margin-top:0.35rem;">{todayOrdersCount}</div>
+      <span style="font-size:0.75rem;color:#2F6B4F;">Across all Indian circles</span>
+    </div>
+
+    <div class="admin-card" style="margin-bottom:0;">
+      <span style="font-size:0.75rem;font-weight:700;color:var(--admin-ink-muted);text-transform:uppercase;letter-spacing:0.05em;">This Month's Revenue</span>
+      <div style="font-size:2rem;font-weight:700;color:var(--admin-primary);margin-top:0.35rem;">{formatPrice(monthRevenuePaise)}</div>
+      <span style="font-size:0.75rem;color:var(--admin-accent);">Authoritative Paid Orders</span>
+    </div>
+
+    <div class="admin-card" style="margin-bottom:0;">
+      <span style="font-size:0.75rem;font-weight:700;color:var(--admin-ink-muted);text-transform:uppercase;letter-spacing:0.05em;">Pending Payment</span>
+      <div style="font-size:2rem;font-weight:700;color:#A8442A;margin-top:0.35rem;">{pendingOrdersCount}</div>
+      <span style="font-size:0.75rem;color:var(--admin-ink-muted);">Abandoned / Unpaid</span>
+    </div>
+
+    <div class="admin-card" style="margin-bottom:0;">
+      <span style="font-size:0.75rem;font-weight:700;color:var(--admin-ink-muted);text-transform:uppercase;letter-spacing:0.05em;">Low Stock Alerts</span>
+      <div style="font-size:2rem;font-weight:700;color:#B9803A;margin-top:0.35rem;">{lowStockCount}</div>
+      <span style="font-size:0.75rem;color:var(--admin-ink-muted);">&lt; 5 units in workshop</span>
+    </div>
+  </div>
+
+  <!-- Recent Orders Table -->
+  <div class="admin-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+      <h2 style="font-family:var(--admin-font-head);font-size:1.45rem;color:var(--admin-primary);margin:0;">Recent Store Orders</h2>
+      <a href="/admin/orders" class="admin-btn admin-btn--outline">View All Orders &rarr;</a>
+    </div>
+
+    {recentOrders.length > 0 ? (
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Customer</th>
+              <th>Payment Method</th>
+              <th>Payment Status</th>
+              <th>Fulfillment</th>
+              <th>Total</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentOrders.map(o => (
+              <tr>
+                <td><strong>#{o.order_number}</strong></td>
+                <td>{new Date(o.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}</td>
+                <td>{o.email}</td>
+                <td><span style="font-size:0.75rem;text-transform:uppercase;">{o.payment_method}</span></td>
+                <td><span class={`status-badge status-badge--${o.payment_status === 'paid' ? 'delivered' : o.payment_status === 'failed' ? 'cancelled' : 'pending'}`}>{o.payment_status}</span></td>
+                <td><span class={`status-badge status-badge--${o.status}`}>{o.status}</span></td>
+                <td><strong>{formatPrice(o.total_paise)}</strong></td>
+                <td>
+                  <a href={`/order/${o.order_number}?token=${o.access_token}`} target="_blank" class="admin-btn admin-btn--outline" style="padding:0.25rem 0.5rem;font-size:0.75rem;">
+                    View Receipt
+                  </a>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div style="text-align:center;padding:2.5rem;color:var(--admin-ink-muted);">
+        <p>No orders recorded yet. Public storefront is ready for customer purchases.</p>
+        <a href="/" target="_blank" class="admin-btn admin-btn--primary" style="margin-top:0.5rem;">Launch Public Storefront &rarr;</a>
+      </div>
+    )}
+  </div>
+</Admin>

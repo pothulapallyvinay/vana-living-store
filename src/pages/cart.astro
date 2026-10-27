@@ -1,0 +1,558 @@
+---
+// src/pages/cart.astro
+// Standalone shopping cart page with table, instant server pricing sync, coupon application, and free shipping progress
+import Base from '../layouts/Base.astro';
+import { site, shipping } from '../config/site';
+---
+
+<Base title={`Shopping Cart — ${site.name}`}>
+  <div class="site-container cart-page-container">
+    <div class="cart-header">
+      <h1 class="cart-page-title">Your Shopping Cart</h1>
+      <a href="/collections/all" class="continue-shopping-link">&larr; Continue Exploring Collections</a>
+    </div>
+
+    <!-- Empty State Container -->
+    <div id="cart-empty-state" class="cart-empty-box" style="display:none;">
+      <div class="empty-icon">🪵</div>
+      <h2>Your Artisan Cart is Empty</h2>
+      <p>Discover our 3D layered wooden mandalas, sculptural pendant lamps, and handcrafted clocks.</p>
+      <a href="/collections/all" class="btn-start-shopping">Start Exploring Collections &rarr;</a>
+    </div>
+
+    <!-- Active Cart Layout -->
+    <div id="cart-layout" class="cart-layout-grid" style="display:none;">
+      <!-- Left: Items Table -->
+      <div class="cart-table-column">
+        <div class="cart-table-card">
+          <table class="cart-table" aria-label="Shopping Cart Items">
+            <thead>
+              <tr>
+                <th scope="col" style="width: 50%;">Craft Piece</th>
+                <th scope="col" style="width: 18%;">Price</th>
+                <th scope="col" style="width: 18%;">Quantity</th>
+                <th scope="col" style="width: 14%; text-align: right;">Total</th>
+              </tr>
+            </thead>
+            <tbody id="cart-table-body">
+              <!-- Dynamically populated via JS and /api/cart/price -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: Sticky Order Summary (360px) -->
+      <aside class="cart-summary-column">
+        <div class="summary-card">
+          <h2 class="summary-title">Order Summary</h2>
+
+          <!-- Free Shipping Progress Bar -->
+          <div class="shipping-progress-box" id="shipping-progress-box">
+            <div class="progress-message" id="progress-message">
+              Add more for free delivery
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="progress-bar-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Price Lines -->
+          <div class="summary-lines">
+            <div class="summary-row">
+              <span class="row-label">Subtotal</span>
+              <span class="row-value" id="summary-subtotal">₹0</span>
+            </div>
+            <div class="summary-row" id="row-discount" style="display:none;">
+              <span class="row-label">Coupon Discount</span>
+              <span class="row-value discount" id="summary-discount">-₹0</span>
+            </div>
+            <div class="summary-row">
+              <span class="row-label">All-India Shipping</span>
+              <span class="row-value" id="summary-shipping">₹0</span>
+            </div>
+            <div class="summary-divider"></div>
+            <div class="summary-row summary-row--total">
+              <span class="total-label">Estimated Total</span>
+              <span class="total-value" id="summary-total">₹0</span>
+            </div>
+            <span class="tax-note">Inclusive of all Indian taxes (18% GST)</span>
+          </div>
+
+          <!-- Coupon Code Input -->
+          <div class="coupon-section">
+            <div class="coupon-form">
+              <input
+                type="text"
+                id="cart-coupon-input"
+                class="coupon-input"
+                placeholder="Enter promo code"
+                autocomplete="off"
+              />
+              <button type="button" id="cart-coupon-btn" class="coupon-btn">Apply</button>
+            </div>
+            <div id="coupon-feedback" class="coupon-feedback" aria-live="polite"></div>
+          </div>
+
+          <!-- Checkout CTA -->
+          <a href="/checkout" class="btn-proceed-checkout" id="btn-proceed-checkout">
+            <span>Proceed to Checkout</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+
+          <!-- Payment Trust Notes -->
+          <div class="summary-trust-footer">
+            <span class="trust-note">🔒 Encrypted 256-bit Razorpay Checkout</span>
+            <div class="payment-pills">
+              <span>UPI</span>
+              <span>Cards</span>
+              <span>NetBanking</span>
+              <span>COD</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .cart-page-container {
+    padding-top: 3rem;
+    padding-bottom: 6rem;
+  }
+
+  .cart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 2.5rem;
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+    padding-bottom: 1.25rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .cart-page-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0;
+  }
+
+  .continue-shopping-link {
+    font-size: 0.875rem;
+    color: var(--accent, #B9803A);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .continue-shopping-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Empty State */
+  .cart-empty-box {
+    text-align: center;
+    background: #FFFFFF;
+    border-radius: var(--radius, 10px);
+    border: 1px dashed var(--border, rgba(43,27,20,0.2));
+    padding: 5rem 2rem;
+  }
+
+  .empty-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .cart-empty-box h2 {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2rem;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 0.75rem 0;
+  }
+
+  .cart-empty-box p {
+    color: var(--ink-2, #6B5A50);
+    max-width: 480px;
+    margin: 0 auto 2rem;
+    font-size: 1rem;
+  }
+
+  .btn-start-shopping {
+    display: inline-block;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    padding: 0.85rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .btn-start-shopping:hover {
+    background: #3A2013;
+  }
+
+  /* Layout */
+  .cart-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .cart-table-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    overflow: hidden;
+  }
+
+  .cart-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+
+  .cart-table th {
+    background: var(--bg, #FBF7F1);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-2, #6B5A50);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border, rgba(43,27,20,0.1));
+  }
+
+  .cart-table td {
+    padding: 1.25rem;
+    border-bottom: 1px solid rgba(43,27,20,0.06);
+    vertical-align: middle;
+  }
+
+  /* Sticky Summary Card (380px) */
+  .summary-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: var(--radius, 10px);
+    padding: 1.75rem;
+    position: sticky;
+    top: 5.5rem;
+  }
+
+  .summary-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1.25rem 0;
+  }
+
+  .shipping-progress-box {
+    background: var(--bg, #FBF7F1);
+    border: 1px solid var(--border, rgba(43,27,20,0.12));
+    border-radius: 8px;
+    padding: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .progress-message {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--primary, #4A2C1D);
+    margin-bottom: 0.4rem;
+  }
+
+  .progress-bar-bg {
+    width: 100%;
+    height: 6px;
+    background: rgba(43,27,20,0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: #2F6B4F;
+    transition: width 0.3s ease;
+  }
+
+  .summary-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9375rem;
+    color: var(--ink, #2B1B14);
+  }
+
+  .summary-row.discount {
+    color: #2F6B4F;
+  }
+
+  .summary-divider {
+    height: 1px;
+    background: rgba(43,27,20,0.1);
+    margin: 0.5rem 0;
+  }
+
+  .summary-row--total {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .tax-note {
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  /* Coupon */
+  .coupon-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .coupon-form {
+    display: flex;
+    gap: 0.4rem;
+  }
+
+  .coupon-input {
+    flex: 1;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 6px;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.84rem;
+    text-transform: uppercase;
+    outline: none;
+  }
+
+  .coupon-input:focus {
+    border-color: var(--accent, #B9803A);
+  }
+
+  .coupon-btn {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    padding: 0.55rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .coupon-feedback {
+    font-size: 0.8125rem;
+    margin-top: 0.4rem;
+  }
+
+  .btn-proceed-checkout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    padding: 0.9rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .btn-proceed-checkout:hover {
+    background: #3A2013;
+  }
+
+  .summary-trust-footer {
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+
+  .trust-note {
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .payment-pills {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .payment-pills span {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background: var(--bg, #FBF7F1);
+    border: 1px solid rgba(43,27,20,0.1);
+    border-radius: 4px;
+    padding: 0.2rem 0.5rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  @media (max-width: 1024px) {
+    .cart-layout-grid {
+      grid-template-columns: 1fr;
+    }
+    .summary-card {
+      position: static;
+    }
+  }
+</style>
+
+<script>
+  let appliedCoupon: string | null = null;
+
+  async function loadCart() {
+    const rawCart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const emptyBox = document.getElementById('cart-empty-state');
+    const layout = document.getElementById('cart-layout');
+    const tableBody = document.getElementById('cart-table-body');
+
+    if (!rawCart || rawCart.length === 0) {
+      if (emptyBox) emptyBox.style.display = 'block';
+      if (layout) layout.style.display = 'none';
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/cart/price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lines: rawCart, coupon_code: appliedCoupon }),
+      });
+
+      if (!res.ok) throw new Error('Failed to load cart');
+      const data = await res.json();
+
+      if (!data.lines || data.lines.length === 0) {
+        if (emptyBox) emptyBox.style.display = 'block';
+        if (layout) layout.style.display = 'none';
+        return;
+      }
+
+      if (emptyBox) emptyBox.style.display = 'none';
+      if (layout) layout.style.display = 'grid';
+
+      // Render table rows
+      if (tableBody) {
+        tableBody.innerHTML = data.lines.map((line: any) => `
+          <tr data-line-id="${line.variant_id}">
+            <td>
+              <div style="display:flex;align-items:center;gap:1rem;">
+                <div style="width:72px;height:72px;border-radius:8px;overflow:hidden;background:#F3EBDF;flex-shrink:0;">
+                  <img src="${line.image || '/placeholder-decor.svg'}" alt="${line.product_name}" style="width:100%;height:100%;object-fit:cover;" />
+                </div>
+                <div>
+                  <a href="/products/${line.product_id}" style="font-weight:600;color:#2B1B14;text-decoration:none;display:block;margin-bottom:0.25rem;">
+                    ${line.product_name}
+                  </a>
+                  <span style="font-size:0.8125rem;color:#6B5A50;display:block;">${line.variant_label}</span>
+                  <button type="button" class="btn-remove-line" data-variant-id="${line.variant_id}" style="background:none;border:none;color:#A8442A;font-size:0.75rem;cursor:pointer;padding:0;margin-top:0.35rem;text-decoration:underline;">
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </td>
+            <td style="font-weight:600;color:#2B1B14;">
+              ₹${Math.floor(line.price_paise / 100).toLocaleString('en-IN')}
+            </td>
+            <td>
+              <div style="display:inline-flex;align-items:center;border:1px solid rgba(43,27,20,0.15);border-radius:6px;overflow:hidden;">
+                <button type="button" class="btn-qty-mod" data-variant-id="${line.variant_id}" data-delta="-1" style="border:none;background:none;width:28px;height:32px;cursor:pointer;">−</button>
+                <span style="width:32px;text-align:center;font-size:0.875rem;font-weight:600;">${line.qty}</span>
+                <button type="button" class="btn-qty-mod" data-variant-id="${line.variant_id}" data-delta="1" style="border:none;background:none;width:28px;height:32px;cursor:pointer;">+</button>
+              </div>
+            </td>
+            <td style="font-weight:700;color:#4A2C1D;text-align:right;">
+              ₹${Math.floor(line.line_subtotal_paise / 100).toLocaleString('en-IN')}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Update Summary
+      const subEl = document.getElementById('summary-subtotal');
+      const shipEl = document.getElementById('summary-shipping');
+      const totalEl = document.getElementById('summary-total');
+      const progMsg = document.getElementById('progress-message');
+      const progFill = document.getElementById('progress-bar-fill');
+
+      if (subEl) subEl.textContent = `₹${Math.floor(data.subtotal_paise / 100).toLocaleString('en-IN')}`;
+      if (shipEl) shipEl.textContent = data.shipping_paise === 0 ? 'FREE' : `₹${Math.floor(data.shipping_paise / 100).toLocaleString('en-IN')}`;
+      if (totalEl) totalEl.textContent = `₹${Math.floor(data.total_paise / 100).toLocaleString('en-IN')}`;
+
+      // Free shipping progress
+      if (data.shipping_paise === 0) {
+        if (progMsg) progMsg.innerHTML = '🎉 <strong>Complimentary all-India delivery unlocked!</strong>';
+        if (progFill) progFill.style.width = '100%';
+      } else {
+        const remaining = Math.floor(data.amount_for_free_shipping_paise / 100);
+        const percent = Math.min(100, Math.round((data.subtotal_paise / data.free_shipping_threshold_paise) * 100));
+        if (progMsg) progMsg.innerHTML = `Add <strong>₹${remaining.toLocaleString('en-IN')}</strong> more for FREE shipping`;
+        if (progFill) progFill.style.width = `${percent}%`;
+      }
+
+      attachTableListeners();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function attachTableListeners() {
+    // Quantity increment/decrement
+    document.querySelectorAll('.btn-qty-mod').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const varId = Number(btn.getAttribute('data-variant-id'));
+        const delta = Number(btn.getAttribute('data-delta'));
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const item = cart.find((i: any) => i.variant_id === varId);
+        if (item) {
+          item.qty = Math.max(1, item.qty + delta);
+          localStorage.setItem('cart', JSON.stringify(cart));
+          loadCart();
+          (window as any).refreshCartDrawer?.();
+        }
+      });
+    });
+
+    // Remove item
+    document.querySelectorAll('.btn-remove-line').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const varId = Number(btn.getAttribute('data-variant-id'));
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        const updated = cart.filter((i: any) => i.variant_id !== varId);
+        localStorage.setItem('cart', JSON.stringify(updated));
+        loadCart();
+        (window as any).refreshCartDrawer?.();
+      });
+    });
+  }
+
+  // Coupon application
+  const couponBtn = document.getElementById('cart-coupon-btn');
+  const couponInput = document.getElementById('cart-coupon-input') as HTMLInputElement | null;
+  const couponFeedback = document.getElementById('coupon-feedback');
+
+  couponBtn?.addEventListener('click', () => {
+    const val = couponInput?.value.trim().toUpperCase();
+    if (!val) return;
+    appliedCoupon = val;
+    if (couponFeedback) couponFeedback.innerHTML = `<span style="color:#2F6B4F;">Verifying promo code ${val}...</span>`;
+    loadCart();
+  });
+
+  loadCart();
+</script>

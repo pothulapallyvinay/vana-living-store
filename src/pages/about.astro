@@ -1,0 +1,183 @@
+---
+// src/pages/about.astro
+import Base from '../layouts/Base.astro';
+import { site } from '../config/site';
+---
+
+<Base title={`Artisan Craftsmanship & Story — ${site.name}`}>
+  <div class="site-container content-page-container">
+    <div class="content-header">
+      <span class="content-badge">HANDCRAFTED IN INDIA</span>
+      <h1 class="content-title">Our Woodcraft Heritage & Modern Design Philosophy</h1>
+      <p class="content-lead">
+        Bridging sacred Indian geometry, architectural precision cutting, and sustainable timber craft.
+      </p>
+    </div>
+
+    <div class="content-body">
+      <div class="about-grid">
+        <div class="about-text-column">
+          <h2>The Journey of Layered Woodwork</h2>
+          <p>
+            At {site.name}, we believe true home décor should carry soul, texture, and tangible depth. In an era dominated by flat printed canvases and mass-produced plastics, our studio returned to the noble tradition of solid birch and walnut relief woodwork.
+          </p>
+          <p>
+            Every wall mandala, curved pendant lamp, and sculptural timepiece begins as raw architectural timber sheets. Our master draftsmen meticulously engineer between 6 to 9 distinct dimensional tiers, calculating every spoke, cutout, and curve so that each layer casts dramatic natural shadows as daylight shifts across your living space.
+          </p>
+
+          <h2>Sustainability & Material Selection</h2>
+          <p>
+            We exclusively utilize ethically harvested Baltic birch plywood—celebrated for its void-free cross-laminated grain stability—and FSC-certified solid walnut. We finish every creation with hand-rubbed botanical oils and water-based satin sealants that protect the wood without emitting volatile organic compounds (VOCs).
+          </p>
+
+          <h2>Architectural Lighting Studio</h2>
+          <p>
+            Our dedicated lighting laboratory engineers fixtures that treat light not merely as illumination, but as an architectural sculpting medium. Through interlocking curved slats and concealed 3000K warm LED channels, our lamps create atmospheric sanctuary spaces that soothe the mind after demanding days.
+          </p>
+        </div>
+
+        <div class="about-visual-column">
+          <div class="about-photo-card">
+            <img src="/media/products/P01/3.svg" alt="Living room decorated with handcrafted 3D mandala" width="600" height="600" loading="lazy" />
+            <div class="photo-caption">
+              <span>Handcrafted 3D Mandala installed in a modern Indian living room</span>
+            </div>
+          </div>
+
+          <div class="studio-stats-box">
+            <div class="stat-item">
+              <strong>100%</strong>
+              <span>Made in India</span>
+            </div>
+            <div class="stat-item">
+              <strong>9 Tiers</strong>
+              <span>Max Layer Depth</span>
+            </div>
+            <div class="stat-item">
+              <strong>3000K</strong>
+              <span>Warm White Ambiance</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .content-page-container {
+    padding-top: 3.5rem;
+    padding-bottom: 6rem;
+    max-width: 1100px;
+  }
+
+  .content-header {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 4rem;
+  }
+
+  .content-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--accent, #B9803A);
+    display: inline-block;
+    margin-bottom: 0.75rem;
+  }
+
+  .content-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.85rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1rem 0;
+    line-height: 1.15;
+  }
+
+  .content-lead {
+    font-size: 1.15rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  .about-text-column h2 {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin: 2rem 0 0.85rem;
+  }
+
+  .about-text-column h2:first-child {
+    margin-top: 0;
+  }
+
+  .about-text-column p {
+    font-size: 1rem;
+    line-height: 1.7;
+    color: var(--ink-2, #6B5A50);
+    margin: 0 0 1.25rem;
+  }
+
+  .about-photo-card {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #F3EBDF;
+    box-shadow: 0 16px 40px rgba(43,27,20,0.1);
+    margin-bottom: 2rem;
+  }
+
+  .about-photo-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .photo-caption {
+    padding: 0.85rem 1rem;
+    background: #FFFFFF;
+    font-size: 0.8125rem;
+    color: var(--ink-2, #6B5A50);
+    border-top: 1px solid rgba(43,27,20,0.08);
+  }
+
+  .studio-stats-box {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    background: #FAF5EE;
+    border: 1px solid rgba(185, 128, 58, 0.25);
+    border-radius: 10px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+  }
+
+  .stat-item strong {
+    display: block;
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 1.85rem;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .stat-item span {
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  @media (max-width: 900px) {
+    .about-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,200 @@
+---
+// src/pages/admin/orders.astro
+// Admin Orders management with status transitions, tracking numbers, and Razorpay refunds
+import Admin from '../../layouts/Admin.astro';
+import { getDB, all } from '../../lib/db';
+import { formatPrice } from '../../lib/format';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+const statusFilter = Astro.url.searchParams.get('status') || 'all';
+
+let orders: any[] = [];
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    let q = `SELECT * FROM orders`;
+    const params: any[] = [];
+    if (statusFilter !== 'all') {
+      q += ` WHERE status = ?`;
+      params.push(statusFilter);
+    }
+    q += ` ORDER BY id DESC LIMIT 50`;
+    orders = await all(db, q, params);
+  } catch {}
+}
+---
+
+<Admin title="Orders & Fulfillment" activeNav="orders">
+  <div class="admin-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <a href="/admin/orders" class={`admin-btn ${statusFilter === 'all' ? 'admin-btn--primary' : 'admin-btn--outline'}`}>All</a>
+        <a href="/admin/orders?status=confirmed" class={`admin-btn ${statusFilter === 'confirmed' ? 'admin-btn--primary' : 'admin-btn--outline'}`}>Confirmed</a>
+        <a href="/admin/orders?status=processing" class={`admin-btn ${statusFilter === 'processing' ? 'admin-btn--primary' : 'admin-btn--outline'}`}>Processing</a>
+        <a href="/admin/orders?status=shipped" class={`admin-btn ${statusFilter === 'shipped' ? 'admin-btn--primary' : 'admin-btn--outline'}`}>Shipped</a>
+        <a href="/admin/orders?status=delivered" class={`admin-btn ${statusFilter === 'delivered' ? 'admin-btn--primary' : 'admin-btn--outline'}`}>Delivered</a>
+        <a href="/admin/orders?status=pending_payment" class={`admin-btn ${statusFilter === 'pending_payment' ? 'admin-btn--primary' : 'admin-btn--outline'}`}>Unpaid / Pending</a>
+      </div>
+    </div>
+
+    {orders.length > 0 ? (
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Customer & Date</th>
+              <th>Payment</th>
+              <th>Status</th>
+              <th>Courier & AWB</th>
+              <th>Total Amount</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {orders.map(o => (
+              <tr data-order-id={o.id}>
+                <td>
+                  <strong>#{o.order_number}</strong>
+                </td>
+                <td>
+                  <strong style="display:block;">{o.email}</strong>
+                  <span style="font-size:0.75rem;color:var(--admin-ink-muted);">+91 {o.phone} | {new Date(o.created_at).toLocaleDateString('en-IN')}</span>
+                </td>
+                <td>
+                  <span class={`status-badge status-badge--${o.payment_status === 'paid' ? 'delivered' : o.payment_status === 'failed' ? 'cancelled' : 'pending'}`}>
+                    {o.payment_status}
+                  </span>
+                  <span style="display:block;font-size:0.75rem;color:var(--admin-ink-muted);text-transform:uppercase;margin-top:0.25rem;">
+                    {o.payment_method}
+                  </span>
+                </td>
+                <td>
+                  <select class="admin-status-select" data-order-id={o.id} style="font-size:0.8125rem;padding:0.3rem 0.5rem;border-radius:4px;border:1px solid var(--admin-border);">
+                    <option value="pending_payment" selected={o.status === 'pending_payment'}>Pending</option>
+                    <option value="confirmed" selected={o.status === 'confirmed'}>Confirmed</option>
+                    <option value="processing" selected={o.status === 'processing'}>Processing</option>
+                    <option value="shipped" selected={o.status === 'shipped'}>Shipped</option>
+                    <option value="delivered" selected={o.status === 'delivered'}>Delivered</option>
+                    <option value="cancelled" selected={o.status === 'cancelled'}>Cancelled</option>
+                  </select>
+                </td>
+                <td>
+                  <div style="display:flex;flex-direction:column;gap:0.25rem;">
+                    <input
+                      type="text"
+                      class="admin-courier-input"
+                      placeholder="Courier (e.g. Blue Dart)"
+                      value={o.courier || ''}
+                      style="width:130px;font-size:0.75rem;padding:0.25rem 0.4rem;border:1px solid var(--admin-border);border-radius:4px;"
+                    />
+                    <input
+                      type="text"
+                      class="admin-tracking-input"
+                      placeholder="AWB Number"
+                      value={o.tracking_number || ''}
+                      style="width:130px;font-size:0.75rem;padding:0.25rem 0.4rem;border:1px solid var(--admin-border);border-radius:4px;"
+                    />
+                  </div>
+                </td>
+                <td>
+                  <strong>{formatPrice(o.total_paise)}</strong>
+                </td>
+                <td>
+                  <div style="display:flex;flex-direction:column;gap:0.35rem;">
+                    <button type="button" class="admin-btn admin-btn--primary btn-update-order" data-order-id={o.id} style="padding:0.25rem 0.5rem;font-size:0.75rem;">
+                      Save Updates
+                    </button>
+                    {o.payment_status === 'paid' && o.razorpay_payment_id && (
+                      <button type="button" class="admin-btn admin-btn--danger btn-refund-order" data-order-id={o.id} style="padding:0.25rem 0.5rem;font-size:0.75rem;">
+                        Refund Online
+                      </button>
+                    )}
+                    <a href={`/order/${o.order_number}?token=${o.access_token}`} target="_blank" class="admin-btn admin-btn--outline" style="padding:0.25rem 0.5rem;font-size:0.75rem;text-align:center;">
+                      View Order
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    ) : (
+      <div style="text-align:center;padding:3rem;color:var(--admin-ink-muted);">
+        No orders match this status criteria.
+      </div>
+    )}
+  </div>
+</Admin>
+
+<script>
+  // Update order status & courier info
+  document.querySelectorAll('.btn-update-order').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = btn.getAttribute('data-order-id');
+      const row = btn.closest('tr');
+      if (!row) return;
+
+      const status = (row.querySelector('.admin-status-select') as HTMLSelectElement)?.value;
+      const courier = (row.querySelector('.admin-courier-input') as HTMLInputElement)?.value;
+      const tracking = (row.querySelector('.admin-tracking-input') as HTMLInputElement)?.value;
+
+      btn.textContent = 'Saving...';
+      try {
+        const res = await fetch('/api/admin/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'update_status',
+            order_id: Number(orderId),
+            status,
+            courier,
+            tracking_number: tracking,
+          }),
+        });
+        if (res.ok) {
+          btn.textContent = '✓ Saved';
+          setTimeout(() => { btn.textContent = 'Save Updates'; }, 1500);
+        } else {
+          alert('Update failed');
+          btn.textContent = 'Save Updates';
+        }
+      } catch {
+        alert('Network error');
+        btn.textContent = 'Save Updates';
+      }
+    });
+  });
+
+  // Razorpay refund handler
+  document.querySelectorAll('.btn-refund-order').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const orderId = btn.getAttribute('data-order-id');
+      if (!confirm('Are you sure you want to issue a full refund via Razorpay Orders API for this order?')) return;
+
+      btn.textContent = 'Refunding...';
+      try {
+        const res = await fetch('/api/admin/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'refund',
+            order_id: Number(orderId),
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert('Refund processed successfully via Razorpay.');
+          window.location.reload();
+        } else {
+          alert(data.error || 'Refund failed.');
+          btn.textContent = 'Refund Online';
+        }
+      } catch {
+        alert('Refund request network error.');
+        btn.textContent = 'Refund Online';
+      }
+    });
+  });
+</script>

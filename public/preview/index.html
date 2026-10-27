@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#4A2C1D" />
+  <title>Vana Living — Handcrafted 3D Wooden Wall Art, Lamps & Clocks | Website Preview</title>
+  <meta name="description" content="Shop premium handcrafted 3D multi-layered wooden wall art, designer lamps and artisan clocks. Made in India. Free shipping above ₹999." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ================================================================
+       VANA LIVING — COMPLETE WEBSITE PREVIEW STYLESHEET
+       Aesthetic: warm, premium, artisan — walnut, brass, cream
+       ================================================================ */
+
+    :root {
+      --bg:         #FBF7F1;
+      --surface:    #FFFFFF;
+      --surface-2:  #F3EBDF;
+      --ink:        #2B1B14;
+      --ink-2:      #6B5A50;
+      --ink-3:      #9B8A80;
+      --primary:    #4A2C1D;
+      --primary-h:  #5E3826;
+      --accent:     #B9803A;
+      --accent-h:   #A06A28;
+      --sale:       #A8442A;
+      --success:    #2F6B4F;
+      --border:     rgba(43,27,20,.12);
+      --border-2:   rgba(43,27,20,.20);
+      --radius:     10px;
+      --radius-lg:  16px;
+      --shadow:     0 2px 12px rgba(43,27,20,.08);
+      --shadow-lg:  0 8px 32px rgba(43,27,20,.14);
+      --font-head:  'Cormorant Garamond', Georgia, serif;
+      --font-body:  'DM Sans', system-ui, -apple-system, sans-serif;
+      --transition: 220ms cubic-bezier(.4,0,.2,1);
+      --max-w:      1400px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+    body {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      line-height: 1.6;
+      color: var(--ink);
+      background: var(--bg);
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; height: auto; display: block; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    ul, ol { list-style: none; }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0;
+      margin: -1px; overflow: hidden; clip: rect(0,0,0,0);
+      white-space: nowrap; border-width: 0;
+    }
+
+    .container {
+      max-width: var(--max-w);
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* ── Preview Banner ─────────────────────────────────────── */
+    .preview-banner {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #fff;
+      text-align: center;
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      position: sticky;
+      top: 0;
+      z-index: 10000;
+    }
+    .preview-banner span { color: #e94560; font-weight: 700; }
+
+    /* ── Announcement Bar ───────────────────────────────────── */
+    .announcement-bar {
+      background: var(--primary);
+      color: #F8EFE4;
+      text-align: center;
+      padding: 0.6rem 1.5rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.03em;
+      position: relative;
+    }
+    .announcement-bar strong { color: var(--accent); }
+    .ann-close {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(248,239,228,0.6);
+      font-size: 1rem;
+      padding: 0.25rem;
+      transition: color 0.2s;
+    }
+    .ann-close:hover { color: #fff; }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .site-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 28px;
+      z-index: 1000;
+      transition: box-shadow 0.3s;
+    }
+    .site-header.scrolled {
+      box-shadow: 0 4px 20px rgba(43,27,20,0.08);
+    }
+    .header-main {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+      gap: 1.5rem;
+    }
+    .site-logo a {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-mark {
+      font-size: 1.75rem;
+      color: var(--accent);
+      line-height: 1;
+    }
+    .logo-title {
+      font-family: var(--font-head);
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.1;
+      display: block;
+    }
+    .logo-sub {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink-2);
+      display: block;
+    }
+
+    /* Desktop Nav */
+    .desktop-nav { flex: 1; }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--ink);
+      border-radius: 6px;
+      transition: all var(--transition);
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--primary); background: var(--surface-2); }
+    .nav-link svg { opacity: 0.5; }
+    .matra-link {
+      color: var(--accent) !important;
+      font-weight: 600;
+      position: relative;
+    }
+    .sparkle-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: inline-block;
+      animation: sparkle 2s infinite;
+    }
+    @keyframes sparkle {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* Header Actions */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .search-form {
+      display: flex;
+      align-items: center;
+      background: var(--surface-2);
+      border-radius: 8px;
+      padding: 0.4rem 0.75rem;
+      width: 220px;
+      transition: width 0.3s, box-shadow 0.3s;
+    }
+    .search-form:focus-within {
+      width: 280px;
+      box-shadow: 0 0 0 2px var(--accent);
+      background: var(--surface);
+    }
+    .search-input {
+      border: none;
+      background: transparent;
+      font-size: 0.8125rem;
+      color: var(--ink);
+      outline: none;
+      flex: 1;
+      font-family: var(--font-body);
+    }
+    .search-input::placeholder { color: var(--ink-3); }
+    .search-submit {
+      color: var(--ink-2);
+      padding: 0.2rem;
+    }
+    .header-icon-btn {
+      width: 40px; height: 40px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+      color: var(--ink);
+      transition: all var(--transition);
+      position: relative;
+    }
+    .header-icon-btn:hover { background: var(--surface-2); color: var(--primary); }
+    .cart-badge {
+      position: absolute;
+      top: 2px; right: 2px;
+      background: var(--sale);
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 700;
+      min-width: 16px; height: 16px;
+      border-radius: 99px;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+
+    /* Mobile Menu Toggle */
+    .mobile-menu-toggle { display: none; }
+
+    /* ── Mega Menu ───────────────────────────────────────────── */
+    .nav-has-megamenu { position: relative; }
+    .mega-menu {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 780px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow-lg);
+      padding: 2rem;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateX(-50%) translateY(8px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+    .nav-has-megamenu:hover .mega-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+    .mega-col-title {
+      font-family: var(--font-head);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+    }
+    .mega-links li { margin-bottom: 0.4rem; }
+    .mega-links a {
+      font-size: 0.85rem;
+      color: var(--ink-2);
+      transition: color 0.2s, padding-left 0.2s;
+      display: block;
+      padding: 0.2rem 0;
+    }
+    .mega-links a:hover { color: var(--accent); padding-left: 4px; }
+
+    /* ── Hero Slider ────────────────────────────────────────── */
+    .hero-section {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, var(--surface-2) 0%, #E8DED2 100%);
+    }
+    .hero-slider {
+      position: relative;
+      min-height: 580px;
+    }
+    .hero-slide {
+      display: none;
+      min-height: 580px;
+      animation: heroFade 0.8s ease;
+    }
+    .hero-slide.active { display: grid; }
+    @keyframes heroFade {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .hero-slide {
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 3rem;
+      padding: 4rem 0;
+    }
+    .hero-content {
+      padding-left: 3rem;
+    }
+    .hero-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+    .hero-title {
+      font-family: var(--font-head);
+      font-size: 3.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+    .hero-desc {
+      font-size: 1.0625rem;
+      color: var(--ink-2);
+      line-height: 1.6;
+      margin-bottom: 2rem;
+      max-width: 480px;
+    }
+    .hero-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn-hero-primary {
+      background: var(--primary);
+      color: #fff;
+      padding: 0.9rem 2rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      transition: all 0.25s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-hero-primary:hover { background: var(--primary-h); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(74,44,29,0.25); }
+    .btn-hero-outline {
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      padding: 0.8rem 1.75rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      transition: all 0.25s;
+    }
+    .btn-hero-outline:hover { background: var(--primary); color: #fff; }
+    .hero-image-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+    .hero-image-wrap img {
+      max-height: 500px;
+      width: auto;
+      filter: drop-shadow(0 20px 40px rgba(43,27,20,0.15));
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .hero-slide:hover .hero-image-wrap img { transform: scale(1.03); }
+
+    /* Hero Controls */
+    .hero-controls {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+    .hero-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border-2);
+      transition: all 0.3s;
+    }
+    .hero-dot.active {
+      background: var(--accent);
+      width: 28px;
+      border-radius: 5px;
+    }
+    .hero-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 48px; height: 48px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 10;
+      transition: all 0.3s;
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+    .hero-nav-btn:hover { background: #fff; box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .hero-prev { left: 1.5rem; }
+    .hero-next { right: 1.5rem; }
+
+    /* ── Trust Strip ────────────────────────────────────────── */
+    .trust-strip {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 0;
+    }
+    .trust-items {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      flex-wrap: wrap;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--ink-2);
+    }
+    .trust-icon { font-size: 1.25rem; }
+
+    /* ── Section Shared ─────────────────────────────────────── */
+    .section { padding: 5rem 0; }
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 3.5rem;
+    }
+    .section-header-split {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-bottom: 2.5rem;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .section-tag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      display: inline-block;
+      margin-bottom: 0.5rem;
+    }
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0 0 0.75rem 0;
+      line-height: 1.15;
+    }
+    .section-desc {
+      font-size: 1rem;
+      color: var(--ink-2);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .view-all-btn {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--accent);
+      padding: 0.5rem 0;
+      border-bottom: 2px solid var(--accent);
+      transition: all 0.2s;
+    }
+    .view-all-btn:hover { color: var(--primary); border-color: var(--primary); }
+
+    /* ── Category Grid ──────────────────────────────────────── */
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.75rem;
+    }
+    .category-card {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      aspect-ratio: 3 / 4;
+      color: #fff;
+      box-shadow: 0 8px 24px rgba(43,27,20,0.08);
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s;
+    }
+    .category-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px rgba(43,27,20,0.16);
+    }
+    .category-card__media {
+      position: absolute;
+      inset: 0;
+      background: var(--surface-2);
+    }
+    .category-card__media img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
+    }
+    .category-card:hover .category-card__media img { transform: scale(1.08); }
+    .category-card__overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(43,27,20,0.88) 0%, rgba(43,27,20,0.3) 50%, transparent 100%);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .cat-count {
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: #E2B273;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .cat-title {
+      font-family: var(--font-head);
+      font-size: 1.45rem;
+      font-weight: 700;
+      margin: 0.35rem 0 0.5rem;
+      line-height: 1.2;
+    }
+    .cat-link {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #F8EFE4;
+      opacity: 0.85;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .category-card:hover .cat-link { opacity: 1; transform: translateX(4px); }
+
+    /* ── Product Cards Grid ─────────────────────────────────── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.75rem;
+    }
+    .product-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s;
+      position: relative;
+    }
+    .product-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .product-card__image {
+      position: relative;
+      aspect-ratio: 1;
+      overflow: hidden;
+      background: var(--surface-2);
+    }
+    .product-card__image img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: opacity 0.4s, transform 0.4s;
+    }
+    .product-card__image .img-hover {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+    }
+    .product-card:hover .img-hover { opacity: 1; }
+    .product-card:hover .img-primary { opacity: 0; }
+    .product-card__badge {
+      position: absolute;
+      top: 12px; left: 12px;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      z-index: 2;
+    }
+    .badge-HOT { background: var(--sale); color: #fff; }
+    .badge-NEW { background: var(--success); color: #fff; }
+    .badge-SALE { background: var(--accent); color: #fff; }
+    .product-card__actions-overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 0.75rem;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+      z-index: 2;
+    }
+    .product-card:hover .product-card__actions-overlay {
+      transform: translateY(0);
+    }
+    .action-btn-sm {
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-add-cart {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      flex: 1;
+    }
+    .btn-add-cart:hover { background: var(--primary-h); }
+    .btn-quick-view {
+      background: rgba(255,255,255,0.95);
+      color: var(--primary);
+      border: 1px solid var(--border);
+    }
+    .btn-quick-view:hover { background: var(--surface-2); }
+    .wishlist-btn {
+      position: absolute;
+      top: 12px; right: 12px;
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2;
+      transition: all 0.2s;
+      font-size: 1rem;
+      color: var(--ink-3);
+    }
+    .wishlist-btn:hover { color: var(--sale); background: #fff; transform: scale(1.1); }
+    .product-card__info {
+      padding: 1rem 1.25rem 1.25rem;
+    }
+    .product-card__name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--ink);
+      line-height: 1.35;
+      margin-bottom: 0.5rem;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .product-card__price {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .price-current {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .price-compare {
+      font-size: 0.85rem;
+      color: var(--ink-3);
+      text-decoration: line-through;
+    }
+    .price-discount {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--sale);
+    }
+
+    /* ── Spaces Tabs ────────────────────────────────────────── */
+    .spaces-tab-nav {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+    }
+    .space-tab-btn {
+      background: #fff;
+      border: 1px solid var(--border);
+      padding: 0.65rem 1.4rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--ink);
+      transition: all 0.2s;
+    }
+    .space-tab-btn:hover { border-color: var(--primary); }
+    .space-tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    .space-panel { display: none; }
+    .space-panel.active { display: block; animation: fadeIn 0.35s ease; }
+    .space-footer-link { text-align: center; margin-top: 2.5rem; }
+    .btn-space-explore {
+      display: inline-block;
+      background: var(--bg);
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: 0.75rem 1.8rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-space-explore:hover { background: var(--primary); color: #fff; }
+
+    /* ── MATRA HAUS Spotlight ───────────────────────────────── */
+    .matra-spotlight {
+      background: #2B1B14;
+      color: #fff;
+      padding: 5rem 0;
+    }
+    .matra-banner {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 4rem;
+      align-items: center;
+    }
+    .matra-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #E2B273;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+    .matra-title {
+      font-family: var(--font-head);
+      font-size: 2.75rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+    .matra-desc {
+      font-size: 1rem;
+      line-height: 1.6;
+      color: rgba(248,239,228,0.85);
+      margin-bottom: 2rem;
+    }
+    .matra-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .btn-matra-primary {
+      background: var(--accent);
+      color: #fff;
+      padding: 0.85rem 1.75rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .btn-matra-primary:hover { background: #C99049; }
+    .btn-matra-outline {
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #fff;
+      padding: 0.85rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-matra-outline:hover { border-color: #fff; background: rgba(255,255,255,0.08); }
+    .matra-product-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .matra-product-thumb {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(185,128,58,0.3);
+      transition: transform 0.3s, border-color 0.3s;
+    }
+    .matra-product-thumb:hover { transform: scale(1.05); border-color: var(--accent); }
+    .matra-product-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* ── Craft Story ────────────────────────────────────────── */
+    .craft-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 4.5rem;
+      align-items: center;
+    }
+    .craft-image-frame {
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--surface-2);
+      box-shadow: 0 16px 40px rgba(43,27,20,0.12);
+    }
+    .craft-image-frame img { width: 100%; display: block; }
+    .craft-p {
+      font-size: 1.0625rem;
+      line-height: 1.65;
+      color: var(--ink-2);
+      margin: 0 0 2rem;
+    }
+    .craft-features { display: flex; flex-direction: column; gap: 1.25rem; }
+    .craft-feat { display: flex; gap: 1rem; align-items: flex-start; }
+    .feat-icon {
+      font-size: 1.5rem;
+      line-height: 1;
+      background: #F3EBDF;
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .craft-feat strong { display: block; font-size: 1rem; color: var(--primary); margin-bottom: 0.2rem; }
+    .craft-feat p { margin: 0; font-size: 0.875rem; color: var(--ink-2); }
+
+    /* ── COD Banner ─────────────────────────────────────────── */
+    .cod-banner-card {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.5rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1.75rem;
+    }
+    .cod-icon { font-size: 2.2rem; }
+    .cod-content { flex: 1; }
+    .cod-title {
+      font-family: var(--font-head);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 0 0 0.25rem;
+    }
+    .cod-text { font-size: 0.875rem; color: var(--ink-2); margin: 0; }
+    .cod-link {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    /* ── Newsletter ─────────────────────────────────────────── */
+    .newsletter-section {
+      background: linear-gradient(135deg, #4A2C1D 0%, #2B1B14 100%);
+      padding: 4rem 0;
+      color: #F8EFE4;
+    }
+    .newsletter-content {
+      text-align: center;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+    .newsletter-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #E2B273;
+      margin-bottom: 0.75rem;
+      display: inline-block;
+    }
+    .newsletter-title {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .newsletter-desc {
+      font-size: 0.9rem;
+      color: rgba(248,239,228,0.75);
+      margin-bottom: 2rem;
+    }
+    .newsletter-form {
+      display: flex;
+      gap: 0;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+    .newsletter-input {
+      flex: 1;
+      padding: 0.85rem 1.25rem;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-right: none;
+      border-radius: 8px 0 0 8px;
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .newsletter-input::placeholder { color: rgba(255,255,255,0.4); }
+    .newsletter-input:focus { border-color: var(--accent); }
+    .newsletter-btn {
+      background: var(--accent);
+      color: #fff;
+      padding: 0.85rem 1.5rem;
+      border: none;
+      border-radius: 0 8px 8px 0;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .newsletter-btn:hover { background: var(--accent-h); }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    .site-footer {
+      background: #1F140E;
+      color: #C8B9A8;
+    }
+    .footer-main {
+      padding: 4rem 0 3rem;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr 1fr;
+      gap: 3rem;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+    .footer-logo .logo-mark { color: var(--accent); font-size: 1.5rem; }
+    .footer-logo .logo-title {
+      font-family: var(--font-head);
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: #F8EFE4;
+    }
+    .brand-bio {
+      font-size: 0.85rem;
+      color: rgba(200,185,168,0.8);
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+    .social-links { display: flex; gap: 0.75rem; }
+    .social-icon {
+      width: 36px; height: 36px;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: #C8B9A8;
+      transition: all 0.2s;
+    }
+    .social-icon:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .footer-heading {
+      font-family: var(--font-head);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #F8EFE4;
+      margin-bottom: 1rem;
+    }
+    .footer-links li { margin-bottom: 0.5rem; }
+    .footer-links a {
+      font-size: 0.85rem;
+      color: rgba(200,185,168,0.75);
+      transition: color 0.2s, padding-left 0.2s;
+    }
+    .footer-links a:hover { color: var(--accent); padding-left: 3px; }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 1.5rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .footer-copy {
+      font-size: 0.8rem;
+      color: rgba(200,185,168,0.5);
+    }
+    .payment-icons {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+    }
+    .payment-icon {
+      padding: 0.3rem 0.6rem;
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: rgba(200,185,168,0.6);
+      letter-spacing: 0.03em;
+    }
+
+    /* ── Page Navigation Preview ────────────────────────────── */
+    .page-nav-section {
+      background: var(--surface);
+      padding: 4rem 0;
+      border-top: 1px solid var(--border);
+    }
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.25rem;
+    }
+    .page-link-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .page-link-card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 8px 24px rgba(185,128,58,0.12);
+      transform: translateY(-3px);
+    }
+    .page-link-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--primary));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .page-link-card:hover::before { opacity: 1; }
+    .page-card-icon { font-size: 1.75rem; margin-bottom: 0.75rem; }
+    .page-card-title {
+      font-family: var(--font-head);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.4rem;
+    }
+    .page-card-desc {
+      font-size: 0.8rem;
+      color: var(--ink-2);
+      line-height: 1.45;
+    }
+    .page-card-tag {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    /* ── Scroll Animations ──────────────────────────────────── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .desktop-nav { display: none; }
+      .mobile-menu-toggle { display: flex; width: 40px; height: 40px; align-items: center; justify-content: center; color: var(--ink); }
+      .search-form { width: 160px; }
+      .hero-slide { grid-template-columns: 1fr; min-height: auto; }
+      .hero-content { padding: 2rem 1.5rem; text-align: center; }
+      .hero-title { font-size: 2.5rem; }
+      .hero-actions { justify-content: center; }
+      .hero-image-wrap { padding: 1rem; }
+      .hero-image-wrap img { max-height: 350px; }
+      .category-grid, .products-grid { grid-template-columns: repeat(2, 1fr); gap: 1.25rem; }
+      .matra-banner, .craft-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .mega-menu { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      .category-grid { grid-template-columns: 1fr; }
+      .products-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+      .hero-title { font-size: 2rem; }
+      .section-title { font-size: 1.75rem; }
+      .matra-title { font-size: 2rem; }
+      .cod-banner-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .trust-items { gap: 1.5rem; }
+      .newsletter-form { flex-direction: column; }
+      .newsletter-input { border-right: 1px solid rgba(255,255,255,0.2); border-radius: 8px; }
+      .newsletter-btn { border-radius: 8px; justify-content: center; }
+      .matra-product-grid { grid-template-columns: repeat(2, 1fr); }
+      .hero-nav-btn { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Preview Banner -->
+<div class="preview-banner">
+  🔗 <span>CLIENT PREVIEW</span> — Vana Living E-Commerce Website · Complete Design Preview · October 2026
+</div>
+
+<!-- Announcement Bar -->
+<div class="announcement-bar" id="announcement-bar">
+  🎁 <strong>Free Shipping</strong> on all orders above ₹999 · Pan-India Cash on Delivery Available
+  <button class="ann-close" onclick="this.parentElement.remove()" aria-label="Close announcement">&times;</button>
+</div>
+
+<!-- Header -->
+<header class="site-header" id="site-header">
+  <div class="container">
+    <div class="header-main">
+      <button class="mobile-menu-toggle" aria-label="Toggle navigation menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+
+      <div class="site-logo">
+        <a href="#">
+          <span class="logo-mark">⚜</span>
+          <div>
+            <span class="logo-title">Vana Living</span>
+            <span class="logo-sub">Artisan Woodcraft & Architectural Lighting</span>
+          </div>
+        </a>
+      </div>
+
+      <nav class="desktop-nav">
+        <ul class="nav-links">
+          <li class="nav-has-megamenu">
+            <a href="#" class="nav-link">
+              <span>All Collections</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </a>
+            <div class="mega-menu">
+              <div>
+                <h4 class="mega-col-title">Wall Art</h4>
+                <ul class="mega-links">
+                  <li><a href="#">Mandala Wall Art</a></li>
+                  <li><a href="#">Nature & Wildlife</a></li>
+                  <li><a href="#">Figures & Portraits</a></li>
+                  <li><a href="#">Spiritual & Devotional</a></li>
+                  <li><a href="#">Maps & Abstract</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="mega-col-title">Lighting</h4>
+                <ul class="mega-links">
+                  <li><a href="#">Pendant Lamps</a></li>
+                  <li><a href="#">Table & Floor Lamps</a></li>
+                  <li><a href="#">Night Lights</a></li>
+                </ul>
+                <h4 class="mega-col-title" style="margin-top:1.5rem">Clocks</h4>
+                <ul class="mega-links">
+                  <li><a href="#">Wall Clocks</a></li>
+                  <li><a href="#">Desk Clocks</a></li>
+                </ul>
+              </div>
+              <div>
+                <h4 class="mega-col-title">Shop by Space</h4>
+                <ul class="mega-links">
+                  <li><a href="#">Living Room</a></li>
+                  <li><a href="#">Bedroom</a></li>
+                  <li><a href="#">Pooja Room</a></li>
+                  <li><a href="#">Entrance & Hallway</a></li>
+                  <li><a href="#">Office</a></li>
+                  <li><a href="#">Gifting</a></li>
+                </ul>
+              </div>
+            </div>
+          </li>
+          <li><a href="#" class="nav-link">Wall Art</a></li>
+          <li><a href="#" class="nav-link">Lighting</a></li>
+          <li><a href="#" class="nav-link">Clocks</a></li>
+          <li><a href="#" class="nav-link matra-link"><span class="sparkle-dot"></span> MATRA HAUS</a></li>
+          <li><a href="#" class="nav-link">Artisan Craft</a></li>
+          <li><a href="#" class="nav-link">Contact</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <form class="search-form" onsubmit="return false">
+          <input type="search" class="search-input" placeholder="Search mandalas, lamps, clocks..." aria-label="Search products" />
+          <button type="submit" class="search-submit" aria-label="Submit search">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </form>
+        <button class="header-icon-btn" aria-label="My Account">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <button class="header-icon-btn" aria-label="Wishlist">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+        <button class="header-icon-btn" aria-label="Shopping Cart">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span class="cart-badge">2</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Hero Slider -->
+<section class="hero-section">
+  <div class="container">
+    <div class="hero-slider" id="hero-slider">
+      <!-- Slide 1 -->
+      <div class="hero-slide active" data-slide="0">
+        <div class="hero-content">
+          <span class="hero-tag">HANDCRAFTED IN INDIA</span>
+          <h1 class="hero-title">Multi-Layered 3D Wooden Wall Sculptures</h1>
+          <p class="hero-desc">Breathtaking laser-carved mandala art and nature-inspired relief panels, built from 6 to 9 architectural layers of solid birch and walnut.</p>
+          <div class="hero-actions">
+            <a href="#" class="btn-hero-primary">Explore Wall Art →</a>
+            <a href="#" class="btn-hero-outline">View All 32 Designs</a>
+          </div>
+        </div>
+        <div class="hero-image-wrap">
+          <img src="../store/public/media/products/P01/1.svg" alt="3D Layered Wooden Circular Mandala Wall Art" width="500" height="500" />
+        </div>
+      </div>
+      <!-- Slide 2 -->
+      <div class="hero-slide" data-slide="1">
+        <div class="hero-content">
+          <span class="hero-tag">MATRA HAUS DESIGN STUDIO</span>
+          <h1 class="hero-title">Sculptural Acoustic Pendant Lighting</h1>
+          <p class="hero-desc">Architectural pendant fixtures with hand-assembled interlocking timber fins that create dramatic shadow play and warm diffuse luminescence.</p>
+          <div class="hero-actions">
+            <a href="#" class="btn-hero-primary">Shop MATRA HAUS →</a>
+            <a href="#" class="btn-hero-outline">Watch & Buy</a>
+          </div>
+        </div>
+        <div class="hero-image-wrap">
+          <img src="../store/public/media/products/P17/39.svg" alt="MATRA HAUS Wooden Curved Slat Pendant Lamp" width="500" height="500" />
+        </div>
+      </div>
+      <!-- Slide 3 -->
+      <div class="hero-slide" data-slide="2">
+        <div class="hero-content">
+          <span class="hero-tag">PRECISION LASER CRAFT</span>
+          <h1 class="hero-title">Artisan Wooden Clocks & Night Lights</h1>
+          <p class="hero-desc">Multi-layered walnut wall clocks and glowing acrylic-wood LED ambient lights. Every piece is a statement of meticulous craftsmanship.</p>
+          <div class="hero-actions">
+            <a href="#" class="btn-hero-primary">Shop Clocks →</a>
+            <a href="#" class="btn-hero-outline">Night Lights</a>
+          </div>
+        </div>
+        <div class="hero-image-wrap">
+          <img src="../store/public/media/products/P22/54.svg" alt="Intricate 3D Wooden Mandala Wall Clock" width="500" height="500" />
+        </div>
+      </div>
+    </div>
+    <!-- Controls -->
+    <button class="hero-nav-btn hero-prev" onclick="changeSlide(-1)" aria-label="Previous slide">‹</button>
+    <button class="hero-nav-btn hero-next" onclick="changeSlide(1)" aria-label="Next slide">›</button>
+    <div class="hero-controls">
+      <button class="hero-dot active" onclick="goToSlide(0)"></button>
+      <button class="hero-dot" onclick="goToSlide(1)"></button>
+      <button class="hero-dot" onclick="goToSlide(2)"></button>
+    </div>
+  </div>
+</section>
+
+<!-- Trust Strip -->
+<div class="trust-strip">
+  <div class="container">
+    <div class="trust-items">
+      <div class="trust-item"><span class="trust-icon">🪵</span> Handcrafted in India</div>
+      <div class="trust-item"><span class="trust-icon">📦</span> Damage-free Packaging</div>
+      <div class="trust-item"><span class="trust-icon">🚚</span> Ships in 3 Days</div>
+      <div class="trust-item"><span class="trust-icon">🔒</span> Secure Payments by Razorpay</div>
+      <div class="trust-item"><span class="trust-icon">↩️</span> Easy Returns</div>
+    </div>
+  </div>
+</div>
+
+<!-- Shop by Category -->
+<section class="section fade-up" id="categories">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">CURATED DEPARTMENTS</span>
+      <h2 class="section-title">Shop by Category</h2>
+      <p class="section-desc">Laser-carved multi-tier woodwork, architectural ambient illumination, and artisan timepieces.</p>
+    </div>
+    <div class="category-grid">
+      <a href="#" class="category-card">
+        <div class="category-card__media"><img src="../store/public/media/products/P01/2.svg" alt="Wall Art Collection" loading="lazy" /></div>
+        <div class="category-card__overlay">
+          <span class="cat-count">14 Sculptures</span>
+          <h3 class="cat-title">3D Wall Art & Mandalas</h3>
+          <span class="cat-link">Explore Collection →</span>
+        </div>
+      </a>
+      <a href="#" class="category-card">
+        <div class="category-card__media"><img src="../store/public/media/products/P04/10.svg" alt="Lighting Collection" loading="lazy" /></div>
+        <div class="category-card__overlay">
+          <span class="cat-count">9 Fixtures</span>
+          <h3 class="cat-title">Designer Lamps & Lighting</h3>
+          <span class="cat-link">Explore Collection →</span>
+        </div>
+      </a>
+      <a href="#" class="category-card">
+        <div class="category-card__media"><img src="../store/public/media/products/P21/52.svg" alt="Clocks Collection" loading="lazy" /></div>
+        <div class="category-card__overlay">
+          <span class="cat-count">5 Timepieces</span>
+          <h3 class="cat-title">Artisan Wall & Desk Clocks</h3>
+          <span class="cat-link">Explore Collection →</span>
+        </div>
+      </a>
+      <a href="#" class="category-card">
+        <div class="category-card__media"><img src="../store/public/media/products/P17/40.svg" alt="MATRA HAUS Collection" loading="lazy" /></div>
+        <div class="category-card__overlay">
+          <span class="cat-count">Architectural Edition</span>
+          <h3 class="cat-title">MATRA HAUS Design Studio</h3>
+          <span class="cat-link">Explore Studio →</span>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Best Sellers / Signature Masterpieces -->
+<section class="section fade-up" id="bestsellers">
+  <div class="container">
+    <div class="section-header-split">
+      <div>
+        <span class="section-tag">MOST LOVED PIECES</span>
+        <h2 class="section-title">Signature Masterpieces</h2>
+      </div>
+      <a href="#" class="view-all-btn">View All 32 Handcrafted Designs →</a>
+    </div>
+    <div class="products-grid" id="products-grid">
+      <!-- Products are injected by JS below -->
+    </div>
+  </div>
+</section>
+
+<!-- Shop by Living Space -->
+<section class="section fade-up" id="spaces">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">STYLED FOR YOUR SANCTUARY</span>
+      <h2 class="section-title">Shop by Living Space</h2>
+      <p class="section-desc">Harmonious woodwork curated specifically for each room in your home.</p>
+    </div>
+    <div class="spaces-tab-nav">
+      <button class="space-tab-btn active" data-space="living-room">Living Room</button>
+      <button class="space-tab-btn" data-space="bedroom">Bedroom</button>
+      <button class="space-tab-btn" data-space="pooja-room">Pooja Room</button>
+      <button class="space-tab-btn" data-space="entrance">Entrance & Hallway</button>
+      <button class="space-tab-btn" data-space="office">Office</button>
+      <button class="space-tab-btn" data-space="gifting">Gifting</button>
+    </div>
+    <div id="space-panels">
+      <!-- Panels injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- MATRA HAUS Spotlight -->
+<section class="matra-spotlight fade-up">
+  <div class="container">
+    <div class="matra-banner">
+      <div>
+        <span class="matra-pill">MATRA HAUS × THE ARTISAN GUILD</span>
+        <h2 class="matra-title">Sculptural Acoustic Lighting Fixtures</h2>
+        <p class="matra-desc">Designed for statement dining rooms, duplex atriums, and hospitality suites. Hand-assembled interlocking timber fins create dramatic shadow play and diffuse warm, glare-free ambient luminescence.</p>
+        <div class="matra-actions">
+          <a href="#" class="btn-matra-primary">View Pendant P17 →</a>
+          <a href="#" class="btn-matra-outline">All Studio Editions</a>
+        </div>
+      </div>
+      <div class="matra-product-grid">
+        <div class="matra-product-thumb"><img src="../store/public/media/products/P17/39.svg" alt="MATRA HAUS Curved Slat Pendant" loading="lazy" /></div>
+        <div class="matra-product-thumb"><img src="../store/public/media/products/P27/69.svg" alt="MATRA HAUS Aurora Red Pendant" loading="lazy" /></div>
+        <div class="matra-product-thumb"><img src="../store/public/media/products/P28/73.svg" alt="MATRA HAUS Fluted Wave Pendant" loading="lazy" /></div>
+        <div class="matra-product-thumb"><img src="../store/public/media/products/P17/40.svg" alt="P17 Angle View" loading="lazy" /></div>
+        <div class="matra-product-thumb"><img src="../store/public/media/products/P27/70.svg" alt="P27 Detail" loading="lazy" /></div>
+        <div class="matra-product-thumb"><img src="../store/public/media/products/P28/74.svg" alt="P28 Detail" loading="lazy" /></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Artisan Craftsmanship Story -->
+<section class="section fade-up" id="craft-story">
+  <div class="container">
+    <div class="craft-grid">
+      <div class="craft-image-frame">
+        <img src="../store/public/media/products/P06/17.svg" alt="Macro wood laser cutting detail" loading="lazy" />
+      </div>
+      <div>
+        <span class="section-tag">HERITAGE MEETS LASER PRECISION</span>
+        <h2 class="section-title">The Art of Multi-Layered Relief Woodcraft</h2>
+        <p class="craft-p">Each wall sculpture begins with sustainably sourced Russian birch plywood and solid walnut sheets, calibrated to millimeter tolerances. Our artisans stack between 6 to 9 distinct architectural tiers, hand-gluing each layer to create breathtaking 3D shadows and visual depth that changes with room light.</p>
+        <div class="craft-features">
+          <div class="craft-feat">
+            <span class="feat-icon">📐</span>
+            <div><strong>Precision Laser Filigree</strong><p>Intricate internal mandalas and sacred motifs cut without edge charring.</p></div>
+          </div>
+          <div class="craft-feat">
+            <span class="feat-icon">🪵</span>
+            <div><strong>Non-Toxic Wood Finishes</strong><p>Hand-rubbed botanical oils and satin acrylic lacquers preserve grain integrity.</p></div>
+          </div>
+          <div class="craft-feat">
+            <span class="feat-icon">💡</span>
+            <div><strong>Concealed Warm Backlighting</strong><p>Commercial-grade 3000K warm LED strips integrated into rear floating chassis.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COD Banner -->
+<section class="section fade-up">
+  <div class="container">
+    <div class="cod-banner-card">
+      <div class="cod-icon">💵</div>
+      <div class="cod-content">
+        <h3 class="cod-title">Pan-India Cash on Delivery & Free Delivery Available</h3>
+        <p class="cod-text">Complimentary shipping on orders above ₹999. For custom large installations, pay 30% advance online and the remainder safely at your doorstep upon verified parcel delivery.</p>
+      </div>
+      <a href="#" class="cod-link">Shipping Policy →</a>
+    </div>
+  </div>
+</section>
+
+<!-- All 32 Products Showcase -->
+<section class="section fade-up" id="all-products" style="background: var(--surface);">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">THE COMPLETE CATALOG</span>
+      <h2 class="section-title">All 32 Handcrafted Designs</h2>
+      <p class="section-desc">Every product in the Vana Living catalog — wall art, lamps, clocks, and MATRA HAUS studio editions.</p>
+    </div>
+    <div class="products-grid" id="all-products-grid">
+      <!-- All 32 products injected by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- Website Pages Overview -->
+<section class="page-nav-section fade-up" id="pages-overview">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-tag">FULL WEBSITE SITEMAP</span>
+      <h2 class="section-title">Complete Page Structure</h2>
+      <p class="section-desc">All pages built for the Vana Living e-commerce website.</p>
+    </div>
+    <div class="pages-grid">
+      <div class="page-link-card">
+        <div class="page-card-icon">🏠</div>
+        <div class="page-card-title">Home Page</div>
+        <div class="page-card-desc">Hero slider, trust strip, shop by category, best sellers, shop by space, MATRA HAUS spotlight, craft story, COD banner, newsletter.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">🗂️</div>
+        <div class="page-card-title">Collection Pages</div>
+        <div class="page-card-desc">Category listing with sidebar filters (price, space, size, brand), sort dropdown, 2/3/4 column grid toggle, pagination.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">🖼️</div>
+        <div class="page-card-title">Product Detail Page</div>
+        <div class="page-card-desc">Gallery with zoom, variant selectors, pincode checker, sticky mobile cart bar, accordions, related products, JSON-LD structured data.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">🛒</div>
+        <div class="page-card-title">Cart Page & Drawer</div>
+        <div class="page-card-desc">Slide-in cart drawer, quantity controls, coupon field, free shipping progress bar, order summary.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">💳</div>
+        <div class="page-card-title">Checkout</div>
+        <div class="page-card-desc">Guest + account checkout. Contact info, shipping address, payment method (Online/COD/COD+Advance), order review sidebar.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">📋</div>
+        <div class="page-card-title">Order Confirmation</div>
+        <div class="page-card-desc">Order number, items, address, payment status, next steps. Accessible via token for guests.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">👤</div>
+        <div class="page-card-title">Account Area</div>
+        <div class="page-card-desc">Dashboard, orders, profile, addresses, change password. Status badges with color-coded timeline.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">🔐</div>
+        <div class="page-card-title">Login & Register</div>
+        <div class="page-card-desc">Centered cards, Turnstile-protected, session management with HttpOnly cookies.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">📊</div>
+        <div class="page-card-title">Admin Panel</div>
+        <div class="page-card-desc">Dashboard, products/media/orders/coupons/users/settings management. CSV bulk import/export.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">ℹ️</div>
+        <div class="page-card-title">About Page</div>
+        <div class="page-card-desc">Artisan philosophy, craftsmanship story, brand values.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">📞</div>
+        <div class="page-card-title">Contact Page</div>
+        <div class="page-card-desc">Contact form with Turnstile, WhatsApp direct link, support email, workshop address.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">❓</div>
+        <div class="page-card-title">FAQ Page</div>
+        <div class="page-card-desc">Accordion FAQs with FAQPage JSON-LD structured data for SEO.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">📦</div>
+        <div class="page-card-title">Bulk Orders</div>
+        <div class="page-card-desc">Corporate gifting enquiry form, bulk pricing information.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">📜</div>
+        <div class="page-card-title">Policy Pages</div>
+        <div class="page-card-desc">Privacy Policy, Terms & Conditions, Shipping & Delivery, Returns & Refunds. Required for Razorpay onboarding.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">💰</div>
+        <div class="page-card-title">Razorpay Integration</div>
+        <div class="page-card-desc">Full payment flow — Orders API, Checkout.js, signature verification, webhooks, retry, refunds.</div>
+        <div class="page-card-tag">✅ Integrated</div>
+      </div>
+      <div class="page-link-card">
+        <div class="page-card-icon">🗺️</div>
+        <div class="page-card-title">SEO & Sitemap</div>
+        <div class="page-card-desc">Dynamic sitemap.xml, robots.txt, canonical URLs, OG tags, Twitter cards, JSON-LD structured data.</div>
+        <div class="page-card-tag">✅ Built</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Newsletter -->
+<section class="newsletter-section fade-up">
+  <div class="container">
+    <div class="newsletter-content">
+      <span class="newsletter-badge">THE ARTISAN GUILD</span>
+      <h3 class="newsletter-title">Receive Curated Editions & Craft Insights</h3>
+      <p class="newsletter-desc">Subscribe for exclusive preview drops, seasonal collections, and behind-the-scenes woodcraft stories.</p>
+    </div>
+    <form class="newsletter-form" onsubmit="return false">
+      <input type="email" class="newsletter-input" placeholder="Enter your email address" aria-label="Email address" />
+      <button type="submit" class="newsletter-btn">Subscribe →</button>
+    </form>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-main">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-logo">
+            <span class="logo-mark">⚜</span>
+            <span class="logo-title">Vana Living</span>
+          </div>
+          <p class="brand-bio">Handcrafting exquisite multi-layered 3D wooden wall sculptures, architectural pendant lighting, and laser-carved clocks in solid birch and walnut. Proudly made in India.</p>
+          <div class="social-links">
+            <a href="#" class="social-icon" aria-label="Instagram">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+            </a>
+            <a href="#" class="social-icon" aria-label="Facebook">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </a>
+            <a href="#" class="social-icon" aria-label="YouTube">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19.13C5.12 19.56 12 19.56 12 19.56s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.43z"/><polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02" fill="currentColor" stroke="none"/></svg>
+            </a>
+            <a href="#" class="social-icon" aria-label="WhatsApp">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </a>
+          </div>
+        </div>
+        <div>
+          <h4 class="footer-heading">Collections</h4>
+          <ul class="footer-links">
+            <li><a href="#">Mandala Wall Art</a></li>
+            <li><a href="#">Nature & Wildlife</a></li>
+            <li><a href="#">Spiritual & Devotional</a></li>
+            <li><a href="#">Pendant Lamps</a></li>
+            <li><a href="#">Table & Floor Lamps</a></li>
+            <li><a href="#">Wall Clocks</a></li>
+            <li><a href="#">MATRA HAUS Studio</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-heading">Shop by Space</h4>
+          <ul class="footer-links">
+            <li><a href="#">Living Room</a></li>
+            <li><a href="#">Bedroom</a></li>
+            <li><a href="#">Pooja Room</a></li>
+            <li><a href="#">Entrance & Hallway</a></li>
+            <li><a href="#">Office</a></li>
+            <li><a href="#">Gifting</a></li>
+            <li><a href="#">Bulk & Corporate Gifting</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="footer-heading">Client Services</h4>
+          <ul class="footer-links">
+            <li><a href="#">Artisan Philosophy</a></li>
+            <li><a href="#">Contact Workshop</a></li>
+            <li><a href="#">Frequently Asked Questions</a></li>
+            <li><a href="#">Shipping & Delivery</a></li>
+            <li><a href="#">Returns & Exchanges</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Terms & Conditions</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 Vana Living. All rights reserved. · GSTIN: 29ABCDE1234F1Z5</span>
+      <div class="payment-icons">
+        <span class="payment-icon">UPI</span>
+        <span class="payment-icon">VISA</span>
+        <span class="payment-icon">MASTERCARD</span>
+        <span class="payment-icon">RUPAY</span>
+        <span class="payment-icon">NETBANKING</span>
+        <span class="payment-icon">WALLETS</span>
+        <span class="payment-icon">COD</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // ── Product Data (All 32 Products from Catalog) ──────────
+  const PRODUCTS = [
+    { id:'P01', name:'3D Layered Wooden Circular Mandala Wall Art with Backlit LED Glow', badge:'HOT', brand:null, price:4999, compare:5999, img1:'P01/1.svg', img2:'P01/2.svg', collection:'Mandala Wall Art', space:'living-room' },
+    { id:'P02', name:'Framed 3D Multi-Layered Wooden Abstract Three Faces Wall Art', badge:null, brand:null, price:3499, compare:4499, img1:'P02/4.svg', img2:'P02/5.svg', collection:'Maps & Abstract', space:'living-room' },
+    { id:'P03', name:'3D Multi-Layered Wooden Woman Profile Silhouette Wall Art', badge:null, brand:null, price:2999, compare:3799, img1:'P03/7.svg', img2:'P03/8.svg', collection:'Figures & Portraits', space:'living-room' },
+    { id:'P04', name:'Geometric Cutout Wooden Artichoke Pendant Lamp Shade', badge:null, brand:null, price:6499, compare:7999, img1:'P04/10.svg', img2:'P04/11.svg', collection:'Pendant Lamps', space:'living-room' },
+    { id:'P05', name:'Curved Slat Wooden Lantern Table Lamp Trio', badge:'HOT', brand:null, price:4499, compare:5499, img1:'P05/13.svg', img2:'P05/14.svg', collection:'Table & Floor Lamps', space:'living-room' },
+    { id:'P06', name:'Framed 3D Multi-Layered Wooden Filigree Floral Mandala Wall Art', badge:null, brand:null, price:3999, compare:4999, img1:'P06/16.svg', img2:'P06/17.svg', collection:'Mandala Wall Art', space:'living-room' },
+    { id:'P07', name:'Framed 3D Multi-Layered Wooden Peacock Wall Art', badge:null, brand:null, price:5499, compare:6999, img1:'P07/18.svg', img2:'P07/19.svg', collection:'Nature & Wildlife', space:'living-room' },
+    { id:'P08', name:'Framed 3D Multi-Layered Wooden Tiger Eyes Wall Art', badge:'NEW', brand:null, price:4799, compare:5999, img1:'P08/21.svg', img2:'P08/22.svg', collection:'Nature & Wildlife', space:'living-room' },
+    { id:'P09', name:'3D Multi-Layered Wooden Semi-Circular Peacock Tail Fan Wall Art', badge:null, brand:null, price:5999, compare:7499, img1:'P09/23.svg', img2:'P09/24.svg', collection:'Nature & Wildlife', space:'entrance' },
+    { id:'P10', name:'Semi-Circular 3D Multi-Layered Wooden Mandala Wall Art Headboard', badge:'HOT', brand:null, price:7999, compare:9999, img1:'P10/26.svg', img2:'P10/27.svg', collection:'Mandala Wall Art', space:'bedroom' },
+    { id:'P11', name:'Full Circular 3D Multi-Layered Wooden Mandala Wall Art', badge:null, brand:null, price:6499, compare:7999, img1:'P11/28.svg', img2:null, collection:'Mandala Wall Art', space:'living-room' },
+    { id:'P12', name:'3D Multi-Layered Wooden Tree of Life Circular Wall Art', badge:null, brand:null, price:4799, compare:5999, img1:'P12/29.svg', img2:'P12/30.svg', collection:'Nature & Wildlife', space:'bedroom' },
+    { id:'P13', name:'3D Multi-Layered Wooden Lotus Flower Mandala Circular Wall Art', badge:null, brand:null, price:3999, compare:4999, img1:'P13/32.svg', img2:'P13/33.svg', collection:'Mandala Wall Art', space:'pooja-room' },
+    { id:'P14', name:'Scandinavian Wooden Pinecone Pendant Lamp Shade - Natural Birch', badge:null, brand:null, price:5499, compare:6999, img1:'P14/35.svg', img2:'P14/38.svg', collection:'Pendant Lamps', space:'living-room' },
+    { id:'P15', name:'Scandinavian Wooden Pinecone Standing Floor Lamp', badge:null, brand:null, price:8999, compare:10999, img1:'P15/36.svg', img2:null, collection:'Table & Floor Lamps', space:'living-room' },
+    { id:'P16', name:'Scandinavian Wooden Pinecone Pendant Lamp - Charcoal Grey', badge:'NEW', brand:null, price:5999, compare:7499, img1:'P16/37.svg', img2:null, collection:'Pendant Lamps', space:'living-room' },
+    { id:'P17', name:'MATRA HAUS Modern Wooden Curved Slat Pendant Lamp Fixture', badge:'HOT', brand:'MATRA HAUS', price:7499, compare:8999, img1:'P17/39.svg', img2:'P17/40.svg', collection:'Pendant Lamps', space:'living-room' },
+    { id:'P18', name:'3D Multi-Layered Wooden Mother and Child Silhouette Wall Art', badge:null, brand:null, price:3499, compare:4499, img1:'P18/42.svg', img2:'P18/43.svg', collection:'Figures & Portraits', space:'bedroom' },
+    { id:'P19', name:'Lotus Flower Glowing Acrylic and Wood LED Ambient Night Light', badge:'NEW', brand:null, price:1999, compare:2499, img1:'P19/45.svg', img2:'P19/46.svg', collection:'Night Lights', space:'bedroom' },
+    { id:'P20', name:'Minimalist Round Multi-Layered Wooden Desk Clock', badge:null, brand:null, price:2499, compare:2999, img1:'P20/48.svg', img2:'P20/49.svg', collection:'Desk Clocks', space:'office' },
+    { id:'P21', name:'Modern Asymmetric 3D Multi-Layered Walnut Wooden Wall Clock', badge:null, brand:null, price:3299, compare:3999, img1:'P21/51.svg', img2:'P21/52.svg', collection:'Wall Clocks', space:'office' },
+    { id:'P22', name:'Intricate 3D Multi-Layered Wooden Mandala Wall Clock', badge:null, brand:null, price:3999, compare:4799, img1:'P22/54.svg', img2:'P22/55.svg', collection:'Wall Clocks', space:'living-room' },
+    { id:'P23', name:'Modern Topographic Contoured 3D Layered Wooden Wall Clock', badge:null, brand:null, price:3799, compare:4499, img1:'P23/57.svg', img2:'P23/58.svg', collection:'Wall Clocks', space:'office' },
+    { id:'P24', name:'3D Multi-Layered Wooden Woman Portrait with Red Lips Wall Art', badge:null, brand:null, price:3999, compare:4999, img1:'P24/60.svg', img2:'P24/61.svg', collection:'Figures & Portraits', space:'living-room' },
+    { id:'P25', name:'Framed 3D Multi-Layered Wooden Koi Fish Shadow Box Wall Art', badge:null, brand:null, price:4499, compare:5499, img1:'P25/63.svg', img2:'P25/64.svg', collection:'Nature & Wildlife', space:'living-room' },
+    { id:'P26', name:'Circular 3D Multi-Layered Wooden Peacock Feather Wall Art', badge:null, brand:null, price:4999, compare:5999, img1:'P26/66.svg', img2:'P26/67.svg', collection:'Nature & Wildlife', space:'entrance' },
+    { id:'P27', name:'MATRA HAUS Aurora Red Curved Acrylic Rib Pendant Lamp', badge:'HOT', brand:'MATRA HAUS', price:8499, compare:9999, img1:'P27/69.svg', img2:'P27/70.svg', collection:'Pendant Lamps', space:'living-room' },
+    { id:'P28', name:'MATRA HAUS Organic Fluted Wave Wooden Slat Pendant Light', badge:null, brand:'MATRA HAUS', price:7999, compare:9499, img1:'P28/73.svg', img2:'P28/74.svg', collection:'Pendant Lamps', space:'living-room' },
+    { id:'P29', name:'Framed 3D Multi-Layered Wooden Tree of Life Filigree Relief', badge:null, brand:null, price:3499, compare:4499, img1:'P29/75.svg', img2:'P29/77.svg', collection:'Nature & Wildlife', space:'living-room' },
+    { id:'P30', name:'Sacred Om (Aum) Lotus 3D Multi-Layered Wooden Mandala Wall Art', badge:null, brand:null, price:3999, compare:4999, img1:'P30/79.svg', img2:null, collection:'Spiritual & Devotional', space:'pooja-room' },
+    { id:'P31', name:'Lord Ganesha on Lotus 3D Multi-Layered Colorful Wooden Wall Art', badge:'HOT', brand:null, price:4999, compare:6499, img1:'P31/80.svg', img2:null, collection:'Spiritual & Devotional', space:'pooja-room' },
+    { id:'P32', name:'Framed 3D Multi-Layered Wooden World Map Topographic Relief Art', badge:null, brand:null, price:5999, compare:7499, img1:'P32/81.svg', img2:'P32/82.svg', collection:'Maps & Abstract', space:'living-room' },
+  ];
+
+  const mediaBase = '../store/public/media/products/';
+
+  function formatPrice(p) { return '₹' + p.toLocaleString('en-IN'); }
+  function discount(compare, price) { return Math.round(((compare - price) / compare) * 100); }
+
+  function productCardHTML(p) {
+    const badgeHTML = p.badge ? `<span class="product-card__badge badge-${p.badge}">${p.badge}</span>` : '';
+    const brandHTML = p.brand ? `<div style="font-size:0.7rem;font-weight:700;letter-spacing:0.08em;color:var(--accent);margin-bottom:0.25rem">${p.brand}</div>` : '';
+    const img2HTML = p.img2 ? `<img class="img-hover" src="${mediaBase}${p.img2}" alt="${p.name} alternate view" loading="lazy" />` : '';
+    const disc = discount(p.compare, p.price);
+
+    return `
+      <div class="product-card">
+        <div class="product-card__image">
+          <img class="img-primary" src="${mediaBase}${p.img1}" alt="${p.name}" loading="lazy" />
+          ${img2HTML}
+          ${badgeHTML}
+          <button class="wishlist-btn" aria-label="Add to wishlist">♡</button>
+          <div class="product-card__actions-overlay">
+            <button class="action-btn-sm btn-add-cart">Add to Cart</button>
+            <button class="action-btn-sm btn-quick-view">Quick View</button>
+          </div>
+        </div>
+        <div class="product-card__info">
+          ${brandHTML}
+          <div class="product-card__name">${p.name}</div>
+          <div class="product-card__price">
+            <span class="price-current">${formatPrice(p.price)}</span>
+            <span class="price-compare">${formatPrice(p.compare)}</span>
+            <span class="price-discount">${disc}% OFF</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // ── Render Best Sellers (first 8 HOT/featured) ───────────
+  const bestSellers = PRODUCTS.filter(p => p.badge === 'HOT' || p.badge === 'NEW').slice(0, 8);
+  document.getElementById('products-grid').innerHTML = bestSellers.map(productCardHTML).join('');
+
+  // ── Render All 32 Products ───────────────────────────────
+  document.getElementById('all-products-grid').innerHTML = PRODUCTS.map(productCardHTML).join('');
+
+  // ── Render Space Panels ──────────────────────────────────
+  const spaces = [
+    { slug:'living-room', label:'Living Room' },
+    { slug:'bedroom', label:'Bedroom' },
+    { slug:'pooja-room', label:'Pooja Room' },
+    { slug:'entrance', label:'Entrance & Hallway' },
+    { slug:'office', label:'Office' },
+    { slug:'gifting', label:'Gifting' },
+  ];
+  const spaceContainer = document.getElementById('space-panels');
+  spaces.forEach((sp, idx) => {
+    let prods = PRODUCTS.filter(p => p.space === sp.slug).slice(0, 4);
+    if (prods.length < 4) prods = PRODUCTS.slice(0, 4);
+    const panel = document.createElement('div');
+    panel.className = `space-panel ${idx === 0 ? 'active' : ''}`;
+    panel.id = `space-${sp.slug}`;
+    panel.innerHTML = `
+      <div class="products-grid">${prods.map(productCardHTML).join('')}</div>
+      <div class="space-footer-link">
+        <a href="#" class="btn-space-explore">Explore All ${sp.label} Décor →</a>
+      </div>`;
+    spaceContainer.appendChild(panel);
+  });
+
+  // ── Space Tab Switching ──────────────────────────────────
+  document.querySelectorAll('.space-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.space-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.space-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(`space-${btn.dataset.space}`)?.classList.add('active');
+    });
+  });
+
+  // ── Hero Slider ──────────────────────────────────────────
+  let currentSlide = 0;
+  const slides = document.querySelectorAll('.hero-slide');
+  const dots = document.querySelectorAll('.hero-dot');
+
+  function goToSlide(n) {
+    slides[currentSlide].classList.remove('active');
+    dots[currentSlide].classList.remove('active');
+    currentSlide = ((n % slides.length) + slides.length) % slides.length;
+    slides[currentSlide].classList.add('active');
+    dots[currentSlide].classList.add('active');
+  }
+  function changeSlide(dir) { goToSlide(currentSlide + dir); }
+  let autoSlide = setInterval(() => changeSlide(1), 5000);
+  document.querySelector('.hero-section').addEventListener('mouseenter', () => clearInterval(autoSlide));
+  document.querySelector('.hero-section').addEventListener('mouseleave', () => { autoSlide = setInterval(() => changeSlide(1), 5000); });
+
+  // ── Scroll Animations ────────────────────────────────────
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-up').forEach(el => obs.observe(el));
+
+  // ── Sticky Header Shadow ─────────────────────────────────
+  window.addEventListener('scroll', () => {
+    document.getElementById('site-header')?.classList.toggle('scrolled', window.scrollY > 10);
+  });
+</script>
+
+</body>
+</html>

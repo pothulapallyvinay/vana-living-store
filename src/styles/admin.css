@@ -1,0 +1,275 @@
+/* src/styles/admin.css */
+/* Minimalist, fast, responsive admin interface */
+
+:root {
+  --admin-bg: #F4EFEA;
+  --admin-surface: #FFFFFF;
+  --admin-sidebar: #2B1B14;
+  --admin-sidebar-text: #E8DCCF;
+  --admin-sidebar-hover: #3E291F;
+  --admin-primary: #4A2C1D;
+  --admin-accent: #B9803A;
+  --admin-border: rgba(43, 27, 20, 0.1);
+  --admin-ink: #2B1B14;
+  --admin-ink-muted: #6B5A50;
+  --admin-radius: 8px;
+  --admin-font: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --admin-font-head: 'Cormorant Garamond', Georgia, serif;
+}
+
+body.admin-body {
+  margin: 0;
+  font-family: var(--admin-font);
+  background: var(--admin-bg);
+  color: var(--admin-ink);
+  display: flex;
+  min-height: 100vh;
+}
+
+.admin-layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: 260px;
+  background: var(--admin-sidebar);
+  color: var(--admin-sidebar-text);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 100;
+  transition: transform 0.3s ease;
+}
+
+.admin-brand {
+  padding: 1.5rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.admin-brand-icon {
+  font-size: 1.4rem;
+  color: var(--admin-accent);
+}
+
+.admin-brand-title {
+  font-family: var(--admin-font-head);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+
+.admin-brand-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: var(--admin-accent);
+  color: #FFFFFF;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.admin-nav {
+  padding: 1rem 0.75rem;
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  color: var(--admin-sidebar-text);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.admin-nav-item:hover {
+  background: var(--admin-sidebar-hover);
+  color: #FFFFFF;
+}
+
+.admin-nav-item.is-active {
+  background: var(--admin-accent);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.admin-sidebar-footer {
+  padding: 1rem 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+/* Content Area */
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.admin-topbar {
+  background: var(--admin-surface);
+  border-bottom: 1px solid var(--admin-border);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.admin-page-title {
+  font-family: var(--admin-font-head);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+  margin: 0;
+}
+
+.admin-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.admin-content {
+  padding: 2rem;
+  flex: 1;
+}
+
+/* Cards & Tables */
+.admin-card {
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius);
+  border: 1px solid var(--admin-border);
+  box-shadow: 0 2px 8px rgba(43, 27, 20, 0.04);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.admin-table th {
+  background: var(--admin-bg);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--admin-ink-muted);
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  color: var(--admin-ink);
+}
+
+.admin-table tr:hover td {
+  background: rgba(244, 239, 234, 0.5);
+}
+
+/* Buttons */
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.admin-btn--primary {
+  background: var(--admin-primary);
+  color: #FFFFFF;
+}
+
+.admin-btn--primary:hover {
+  background: #3A2013;
+}
+
+.admin-btn--accent {
+  background: var(--admin-accent);
+  color: #FFFFFF;
+}
+
+.admin-btn--accent:hover {
+  background: #A66E2E;
+}
+
+.admin-btn--outline {
+  background: transparent;
+  border: 1px solid var(--admin-border);
+  color: var(--admin-ink);
+}
+
+.admin-btn--outline:hover {
+  background: var(--admin-bg);
+}
+
+.admin-btn--danger {
+  background: #A8442A;
+  color: #FFFFFF;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-badge--pending { background: #FEF3C7; color: #92400E; }
+.status-badge--confirmed { background: #DBEAFE; color: #1E40AF; }
+.status-badge--processing { background: #E0E7FF; color: #3730A3; }
+.status-badge--shipped { background: #F3E8FF; color: #6B21A8; }
+.status-badge--delivered { background: #D1FAE5; color: #065F46; }
+.status-badge--cancelled { background: #FEE2E2; color: #991B1B; }
+
+@media (max-width: 900px) {
+  .admin-sidebar {
+    position: fixed;
+    transform: translateX(-100%);
+  }
+  .admin-sidebar.is-open {
+    transform: translateX(0);
+  }
+}

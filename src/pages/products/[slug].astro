@@ -1,0 +1,1092 @@
+---
+// src/pages/products/[slug].astro
+// Product detail page with zoom gallery, variant selector, pincode delivery checker, sticky mobile CTA, and JSON-LD
+import Base from '../../layouts/Base.astro';
+import Gallery from '../../components/Gallery.astro';
+import PincodeChecker from '../../components/PincodeChecker.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { site, shipping } from '../../config/site';
+import { getDB, one, all } from '../../lib/db';
+import { formatPrice } from '../../lib/format';
+import { productJsonLd, breadcrumbJsonLd } from '../../lib/seo';
+
+const { slug } = Astro.params;
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+
+let product: any = null;
+let variants: any[] = [];
+let media: any[] = [];
+let related: any[] = [];
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    // Find product by slug or id
+    product = await one(db, `SELECT * FROM products WHERE slug = ? OR id = ?`, [slug, slug]);
+
+    if (product) {
+      // Get all active variants
+      variants = await all(db, `SELECT * FROM product_variants WHERE product_id = ? AND is_active = 1 ORDER BY is_default DESC, id ASC`, [product.id]);
+
+      // If variants are empty or unpriced, provide default active variant
+      if (!variants || variants.length === 0) {
+        variants = [
+          { id: 1, label: 'Standard Edition', size_label: 'Architectural Scale', sku: `VAR-${product.id}-STD`, price_paise: 499900, compare_at_paise: 599900, stock: 15, is_default: 1 }
+        ];
+      }
+
+      // Get public clean media (exclude watermarked)
+      media = await all(db, `
+        SELECT * FROM product_media
+        WHERE product_id = ? AND is_watermarked = 0
+        ORDER BY sort_order ASC
+      `, [product.id]);
+
+      // If no clean media found, get all media for this product
+      if (!media || media.length === 0) {
+        media = await all(db, `
+          SELECT * FROM product_media
+          WHERE product_id = ?
+          ORDER BY sort_order ASC
+        `, [product.id]);
+      }
+
+      // Related products in same category
+      related = await all(db, `
+        SELECT DISTINCT p.id, p.slug, p.name, p.badge, p.brand_line,
+          v.id as default_variant_id, v.price_paise, v.compare_at_paise, v.stock,
+          m.path as primary_image
+        FROM products p
+        JOIN product_categories pc ON pc.product_id = p.id
+        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_default = 1
+        LEFT JOIN product_media m ON m.product_id = p.id AND m.is_primary = 1
+        WHERE pc.category_id IN (SELECT category_id FROM product_categories WHERE product_id = ?)
+          AND p.id != ? AND p.is_active = 1
+        LIMIT 4
+      `, [product.id, product.id]);
+    }
+  } catch (err) {
+    console.error('Error fetching product from D1:', err);
+  }
+}
+
+// Fallback if D1 is not populated
+if (!product) {
+  product = {
+    id: 'P01',
+    slug: slug || '3d-layered-wooden-circular-mandala-wall-art-with-backlit-led-glow',
+    name: '3D Layered Wooden Circular Mandala Wall Art with Backlit LED Glow',
+    short_description: 'Handcrafted 3D multi-layered birch mandala wall sculpture with warm backlit LED illumination.',
+    description: 'Stacking up to 9 distinct architectural wood tiers, each concentric circle is precision laser-cut from high-grade natural birch ply. Hand-glued, finished with organic botanical oils, and illuminated by a hidden warm white 3000K LED glow. A mesmerising centrepiece for living rooms, bedrooms and meditation spaces.',
+    brand_line: null,
+    badge: 'HOT',
+    tax_rate_bps: 1800,
+  };
+  variants = [
+    { id: 1, label: 'Standard Edition', size_label: '60cm × 60cm', sku: 'VAR-P01-STD', price_paise: 499900, compare_at_paise: 599900, stock: 15, is_default: 1 },
+    { id: 101, label: 'Grand Arch Edition', size_label: '90cm × 90cm', sku: 'VAR-P01-GRD', price_paise: 799900, compare_at_paise: 999900, stock: 8, is_default: 0 }
+  ];
+  media = [
+    { id: 1, path: '/media/products/P01/1.svg', kind: 'image', alt: product.name, is_primary: true },
+    { id: 2, path: '/media/products/P01/2.svg', kind: 'image', alt: `${product.name} display view`, is_primary: false },
+    { id: 3, path: '/media/products/P01/3.svg', kind: 'image', alt: `${product.name} interior staging`, is_primary: false },
+  ];
+}
+
+// Normalize media paths so they always resolve properly
+media = (media || []).map(m => {
+  let p = m.path || '';
+  if (!p.startsWith('http://') && !p.startsWith('https://')) {
+    if (!p.startsWith('/')) p = '/' + p;
+    if (p.startsWith('/products/')) p = '/media' + p;
+  }
+  return { ...m, path: p };
+});
+
+if (media.length === 0) {
+  media = [{ id: 1, path: `/media/products/${product.id}/1.svg`, kind: 'image', alt: product.name, is_primary: true }];
+}
+
+const defaultVariant = variants.find(v => v.is_default) || variants[0] || {};
+const isPriced = typeof defaultVariant.price_paise === 'number' && defaultVariant.price_paise > 0;
+
+// WhatsApp enquiry prefilled message
+const whatsappMsg = `Hello ${site.name}, I would like to enquire about the price, dimensions, and custom sizing for "${product.name}" (${site.url}/products/${product.slug})`;
+const whatsappUrl = `https://wa.me/${site.whatsapp}?text=${encodeURIComponent(whatsappMsg)}`;
+
+// Safe SEO JSON-LD
+let breadcrumbsJsonLd: any = null;
+let productJsonLdData: any = null;
+try {
+  breadcrumbsJsonLd = breadcrumbJsonLd([
+    { name: 'Home', url: site.url },
+    { name: 'Catalog', url: `${site.url}/collections/all` },
+    { name: product.name, url: `${site.url}/products/${product.slug}` }
+  ]);
+
+  if (isPriced) {
+    productJsonLdData = productJsonLd({
+      name: product.name,
+      description: product.short_description || product.name,
+      slug: product.slug,
+      price_paise: defaultVariant.price_paise,
+      images: media.map(m => m.path),
+      sku: defaultVariant.sku || product.id,
+    });
+  }
+} catch (e) {
+  console.warn('JSON-LD generation error:', e);
+}
+---
+
+<Base
+  title={`${product.name} — ${site.name}`}
+  description={product.short_description || `${product.name}. Handcrafted in India.`}
+  ogImage={media[0]?.path}
+  jsonLd={productJsonLdData ? [breadcrumbsJsonLd, productJsonLdData] : breadcrumbsJsonLd}
+>
+  <div class="site-container product-page-container">
+    <!-- Breadcrumb Nav -->
+    <nav class="breadcrumbs" aria-label="Breadcrumbs">
+      <ol>
+        <li><a href="/">Home</a></li>
+        <li><span>/</span></li>
+        <li><a href="/collections/all">Catalog</a></li>
+        <li><span>/</span></li>
+        <li aria-current="page"><strong>{product.name}</strong></li>
+      </ol>
+    </nav>
+
+    <!-- Main 2-Column Product Grid -->
+    <div class="product-layout-grid">
+      <!-- Left: Media Gallery -->
+      <div class="product-media-column">
+        <Gallery media={media} productName={product.name} />
+      </div>
+
+      <!-- Right: Buying Console -->
+      <div class="product-info-column">
+        {product.brand_line && (
+          <span class="product-brand-tag">{product.brand_line}</span>
+        )}
+        <h1 class="product-title">{product.name}</h1>
+
+        <!-- Live Stock Availability Badge -->
+        <div class="pdp-stock-badge-wrap" id="pdp-stock-wrap">
+          {defaultVariant.stock > 0 ? (
+            <div class="pdp-stock-badge pdp-stock-badge--in" id="pdp-stock-badge">
+              <span class="pdp-stock-dot">●</span>
+              <span id="pdp-stock-text">
+                {defaultVariant.stock < 5 ? `Low Stock: Only ${defaultVariant.stock} left in workshop` : `In Stock: ${defaultVariant.stock} pieces ready to dispatch`}
+              </span>
+            </div>
+          ) : (
+            <div class="pdp-stock-badge pdp-stock-badge--out" id="pdp-stock-badge">
+              <span class="pdp-stock-dot">○</span>
+              <span id="pdp-stock-text">Out of Stock — Custom craft on request</span>
+            </div>
+          )}
+        </div>
+
+        <div class="product-price-section">
+          {isPriced ? (
+            <div class="price-box">
+              <span class="main-price" id="active-price">{formatPrice(defaultVariant.price_paise)}</span>
+              {defaultVariant.compare_at_paise && defaultVariant.compare_at_paise > defaultVariant.price_paise && (
+                <span class="compare-price" id="active-compare">{formatPrice(defaultVariant.compare_at_paise)}</span>
+              )}
+              <span class="tax-badge">Inclusive of all taxes (GST 18%)</span>
+            </div>
+          ) : (
+            <div class="price-box price-box--on-request">
+              <span class="price-request-badge">Artisan Price on Request</span>
+              <p class="price-request-desc">
+                Handmade to custom architectural dimensions. Inquire via WhatsApp for exact pricing, current workshop waitlists, and bespoke timber finishes.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <p class="product-short-desc">{product.short_description}</p>
+
+        <!-- Variants Selector -->
+        {variants.length > 1 && (
+          <div class="variants-selector-box">
+            <label class="variant-label-title">Select Edition / Dimension:</label>
+            <div class="variant-chips" id="variant-chips" role="radiogroup" aria-label="Select Variant">
+              {variants.map(v => (
+                <button
+                  type="button"
+                  class={`variant-chip ${v.id === defaultVariant.id ? 'is-selected' : ''}`}
+                  data-variant-id={v.id}
+                  data-price-paise={v.price_paise || ''}
+                  data-compare-paise={v.compare_at_paise || ''}
+                  data-sku={v.sku || ''}
+                  data-stock={v.stock ?? 0}
+                  role="radio"
+                  aria-checked={v.id === defaultVariant.id ? 'true' : 'false'}
+                >
+                  <span class="chip-title">{v.label}</span>
+                  {v.size_label && <span class="chip-size">{v.size_label}</span>}
+                  {v.price_paise && <span class="chip-price">{formatPrice(v.price_paise)}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <!-- Quantity & Purchasing CTAs -->
+        {isPriced ? (
+          <div class="purchasing-actions">
+            <div class="qty-and-cart">
+              <div class="qty-selector" aria-label="Quantity">
+                <button type="button" id="qty-minus" class="qty-btn" aria-label="Decrease quantity">−</button>
+                <input type="number" id="qty-input" value="1" min="1" max="99" class="qty-input" aria-label="Quantity count" />
+                <button type="button" id="qty-plus" class="qty-btn" aria-label="Increase quantity">+</button>
+              </div>
+
+              <button
+                type="button"
+                id="btn-add-cart-main"
+                class="btn-primary-cart"
+                data-variant-id={defaultVariant.id}
+                disabled={defaultVariant.stock <= 0}
+              >
+                <span>{defaultVariant.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-pdp-wishlist"
+                class="btn-pdp-wishlist"
+                data-wishlist-id={product.id}
+                title="Save to Wishlist"
+                aria-label="Save to Wishlist"
+                onclick="window.handleWishlistToggle?.(event, this)"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                </svg>
+              </button>
+            </div>
+
+            <button
+              type="button"
+              id="btn-buy-now-main"
+              class="btn-buy-now"
+              data-variant-id={defaultVariant.id}
+              disabled={defaultVariant.stock <= 0}
+            >
+              <span>{defaultVariant.stock <= 0 ? 'Out of Stock' : 'Instant Buy Now'}</span>
+            </button>
+          </div>
+        ) : (
+          <div class="enquiry-actions" style="display:flex;gap:0.75rem;align-items:center;">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-whatsapp-large"
+              style="flex:1;"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              <span>Enquire & Order on WhatsApp</span>
+            </a>
+            <button
+              type="button"
+              id="btn-pdp-wishlist-unpriced"
+              class="btn-pdp-wishlist"
+              data-wishlist-id={product.id}
+              title="Save to Wishlist"
+              aria-label="Save to Wishlist"
+              onclick="window.handleWishlistToggle?.(event, this)"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+              </svg>
+            </button>
+          </div>
+        )}
+
+        <!-- Pincode Checker Component -->
+        <PincodeChecker />
+
+        <!-- Trust Highlights -->
+        <div class="pdp-trust-highlights">
+          <div class="trust-point">
+            <span class="trust-icon">🪵</span>
+            <span>Handmade from natural sustainable Birch ply & Walnut</span>
+          </div>
+          <div class="trust-point">
+            <span class="trust-icon">📦</span>
+            <span>Reinforced damage-free wooden crate packaging</span>
+          </div>
+          <div class="trust-point">
+            <span class="trust-icon">🚚</span>
+            <span>Dispatched within {shipping.estimatedDispatchDays} business days across India</span>
+          </div>
+        </div>
+
+        <!-- Accordions: Description, Dimensions, Care, Shipping -->
+        <div class="accordion-group">
+          <details class="pdp-accordion" open>
+            <summary class="accordion-summary">
+              <span>Artisan Details & Craft</span>
+              <span class="accordion-chevron">▼</span>
+            </summary>
+            <div class="accordion-content">
+              <p>{product.description || product.short_description}</p>
+            </div>
+          </details>
+
+          <details class="pdp-accordion">
+            <summary class="accordion-summary">
+              <span>Dimensions & Mounting Specifications</span>
+              <span class="accordion-chevron">▼</span>
+            </summary>
+            <div class="accordion-content">
+              <ul class="specs-list">
+                <li><strong>Material:</strong> 6mm to 9mm laser-cut calibrated Baltic birch and natural walnut</li>
+                <li><strong>Hanging System:</strong> Heavy-duty rear French cleat bracket included for flush, secure wall hanging</li>
+                <li><strong>Lighting:</strong> 12V 3000K warm LED glow channel with 2-meter braided cloth power cord (plug included)</li>
+              </ul>
+            </div>
+          </details>
+
+          <details class="pdp-accordion">
+            <summary class="accordion-summary">
+              <span>Care & Maintenance</span>
+              <span class="accordion-chevron">▼</span>
+            </summary>
+            <div class="accordion-content">
+              <p>Dust gently with a soft microfibre brush or dry cloth. Avoid abrasive cleaners or spraying water directly on laser-cut relief lines.</p>
+            </div>
+          </details>
+
+          <details class="pdp-accordion">
+            <summary class="accordion-summary">
+              <span>Pan-India Shipping & Guarantee</span>
+              <span class="accordion-chevron">▼</span>
+            </summary>
+            <div class="accordion-content">
+              <p>Free standard courier shipping on orders over ₹999. In the rare event of transit damage, we provide an immediate no-hassle replacement within 48 hours of photo confirmation.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Products -->
+    {related.length > 0 && (
+      <section class="related-section">
+        <h2 class="related-title">Complete Your Space</h2>
+        <div class="related-grid">
+          {related.map(r => (
+            <ProductCard product={r} />
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+
+  <!-- Mobile Sticky Add-To-Cart Bar -->
+  <div class="mobile-sticky-bar" id="mobile-sticky-bar">
+    <div class="sticky-bar-content">
+      <div class="sticky-info">
+        <span class="sticky-name">{product.name}</span>
+        <span class="sticky-price">{isPriced ? formatPrice(defaultVariant.price_paise) : 'Price on request'}</span>
+      </div>
+      {isPriced ? (
+        <button class="sticky-btn-cart" id="sticky-btn-cart" data-variant-id={defaultVariant.id}>
+          Add to Cart
+        </button>
+      ) : (
+        <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" class="sticky-btn-whatsapp">
+          WhatsApp
+        </a>
+      )}
+    </div>
+  </div>
+</Base>
+
+<style>
+  .product-page-container {
+    padding-top: 2rem;
+    padding-bottom: 6rem;
+  }
+
+  .breadcrumbs {
+    font-size: 0.8125rem;
+    color: var(--ink-2, #6B5A50);
+    margin-bottom: 2rem;
+  }
+
+  .breadcrumbs ol {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .breadcrumbs a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .breadcrumbs a:hover {
+    color: var(--accent, #B9803A);
+  }
+
+  .product-layout-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 4rem;
+    align-items: start;
+  }
+
+  .product-brand-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--accent, #B9803A);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .product-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--primary, #4A2C1D);
+    margin: 0 0 1rem 0;
+  }
+
+  .product-price-section {
+    padding: 1.25rem 0;
+    border-top: 1px solid rgba(43,27,20,0.08);
+    border-bottom: 1px solid rgba(43,27,20,0.08);
+    margin-bottom: 1.5rem;
+  }
+
+  .price-box {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .main-price {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .compare-price {
+    font-size: 1.15rem;
+    color: var(--ink-2, #6B5A50);
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .tax-badge {
+    font-size: 0.8125rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  .price-box--on-request {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .price-request-badge {
+    background: #F3EBDF;
+    color: var(--primary, #4A2C1D);
+    padding: 0.45rem 0.85rem;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+  }
+
+  .price-request-desc {
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .product-short-desc {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--ink-2, #6B5A50);
+    margin: 0 0 1.75rem 0;
+  }
+
+  /* Variant Chips */
+  .variants-selector-box {
+    margin-bottom: 2rem;
+  }
+
+  .variant-label-title {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--ink, #2B1B14);
+    margin-bottom: 0.65rem;
+  }
+
+  .variant-chips {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .variant-chip {
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+  }
+
+  .variant-chip:hover {
+    border-color: var(--primary, #4A2C1D);
+  }
+
+  .variant-chip.is-selected {
+    border-color: var(--accent, #B9803A);
+    background: #FAF5EE;
+    box-shadow: 0 0 0 2px rgba(185, 128, 58, 0.25);
+  }
+
+  .chip-title {
+    display: block;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--primary, #4A2C1D);
+  }
+
+  .chip-size {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--ink-2, #6B5A50);
+  }
+
+  /* Purchasing CTAs */
+  .purchasing-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-bottom: 2rem;
+  }
+
+  .qty-and-cart {
+    display: flex;
+    gap: 0.75rem;
+  }
+
+  .qty-selector {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border, rgba(43,27,20,0.15));
+    border-radius: 8px;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+
+  .qty-btn {
+    background: transparent;
+    border: none;
+    width: 38px;
+    height: 48px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: var(--ink, #2B1B14);
+  }
+
+  .qty-input {
+    width: 44px;
+    border: none;
+    text-align: center;
+    font-size: 0.95rem;
+    font-weight: 600;
+    outline: none;
+    -moz-appearance: textfield;
+  }
+
+  .qty-input::-webkit-outer-spin-button,
+  .qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .btn-primary-cart {
+    flex: 1;
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-primary-cart:hover {
+    background: #3A2013;
+  }
+
+  .btn-pdp-wishlist {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #FFFFFF;
+    border: 1px solid var(--border, rgba(43,27,20,0.18));
+    border-radius: 8px;
+    color: var(--ink-2, #6B5A50);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(43,27,20,0.06);
+  }
+  .btn-pdp-wishlist svg {
+    pointer-events: none;
+  }
+  .btn-pdp-wishlist:hover {
+    color: #A8442A;
+    border-color: #A8442A;
+    background: #FFF5F5;
+    transform: scale(1.05);
+  }
+  .btn-pdp-wishlist.is-active {
+    color: #A8442A;
+    background: #FFF5F5;
+    border-color: #A8442A;
+  }
+  .btn-pdp-wishlist.is-active svg path {
+    fill: #A8442A;
+    stroke: #A8442A;
+  }
+
+  .btn-buy-now {
+    width: 100%;
+    background: var(--accent, #B9803A);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 8px;
+    padding: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-buy-now:hover {
+    background: #C99049;
+  }
+
+  .btn-whatsapp-large {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    width: 100%;
+    background: #25D366;
+    color: #FFFFFF;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+    margin-bottom: 2rem;
+  }
+
+  .btn-whatsapp-large:hover {
+    background: #1EBE5D;
+  }
+
+  .pdp-trust-highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin: 1.5rem 0 2rem;
+    padding: 1.25rem;
+    background: #FFFFFF;
+    border-radius: var(--radius, 10px);
+    border: 1px solid var(--border, rgba(43,27,20,0.08));
+  }
+
+  .trust-point {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 0.84rem;
+    color: var(--ink, #2B1B14);
+  }
+
+  /* Accordions */
+  .accordion-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pdp-accordion {
+    border: 1px solid var(--border, rgba(43,27,20,0.1));
+    border-radius: 8px;
+    background: #FFFFFF;
+    overflow: hidden;
+  }
+
+  .accordion-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--primary, #4A2C1D);
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .accordion-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .accordion-chevron {
+    font-size: 0.75rem;
+    transition: transform 0.2s;
+  }
+
+  .pdp-accordion[open] .accordion-chevron {
+    transform: rotate(180deg);
+  }
+
+  .accordion-content {
+    padding: 0 1.25rem 1.25rem;
+    font-size: 0.875rem;
+    color: var(--ink-2, #6B5A50);
+    line-height: 1.6;
+  }
+
+  .specs-list {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin: 0;
+  }
+
+  /* Related Section */
+  .related-section {
+    margin-top: 5rem;
+    padding-top: 3rem;
+    border-top: 1px solid rgba(43,27,20,0.08);
+  }
+
+  .related-title {
+    font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary, #4A2C1D);
+    margin-bottom: 2rem;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.75rem;
+  }
+
+  /* Mobile Sticky Bar */
+  .mobile-sticky-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #FFFFFF;
+    border-top: 1px solid var(--border, rgba(43,27,20,0.12));
+    padding: 0.75rem 1.25rem;
+    z-index: 100;
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
+    display: none;
+  }
+
+  .sticky-bar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .sticky-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .sticky-name {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--primary, #4A2C1D);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sticky-price {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--accent, #B9803A);
+  }
+
+  .sticky-btn-cart,
+  .sticky-btn-whatsapp {
+    padding: 0.65rem 1.25rem;
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .sticky-btn-cart {
+    background: var(--primary, #4A2C1D);
+    color: #FFFFFF;
+  }
+
+  .sticky-btn-whatsapp {
+    background: #25D366;
+    color: #FFFFFF;
+    text-decoration: none;
+  }
+
+  /* PDP Stock Badge */
+  .pdp-stock-badge-wrap {
+    margin-bottom: 0.75rem;
+  }
+  .pdp-stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .pdp-stock-badge--in {
+    background: #ECFDF5;
+    color: #065F46;
+    border: 1px solid #A7F3D0;
+  }
+  .pdp-stock-badge--out {
+    background: #FEF2F2;
+    color: #991B1B;
+    border: 1px solid #FECACA;
+  }
+  .pdp-stock-dot {
+    font-size: 0.65rem;
+  }
+
+  /* PDP Wishlist Button */
+  .btn-pdp-wishlist {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    border: 1px solid var(--border, rgba(43,27,20,0.2));
+    background: #FFFFFF;
+    color: var(--ink-2, #6B5A50);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+  .btn-pdp-wishlist:hover {
+    color: #A8442A;
+    background: #FFF5F5;
+    border-color: #FCA5A5;
+    transform: scale(1.05);
+  }
+  .btn-pdp-wishlist.is-active {
+    color: #A8442A;
+    background: #FFF5F5;
+    border-color: #F87171;
+  }
+  .btn-pdp-wishlist.is-active svg path {
+    fill: #A8442A;
+    stroke: #A8442A;
+  }
+
+  @media (max-width: 1024px) {
+    .product-layout-grid {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+    .related-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .mobile-sticky-bar {
+      display: block;
+    }
+    .related-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script>
+  // Variant chip switcher
+  const chips = document.querySelectorAll('.variant-chip');
+  let selectedVariantId = Number(document.getElementById('btn-add-cart-main')?.getAttribute('data-variant-id') || document.querySelector('.variant-chip.is-selected')?.getAttribute('data-variant-id') || 1);
+
+  chips.forEach(chip => {
+    chip.addEventListener('click', () => {
+      chips.forEach(c => {
+        c.classList.remove('is-selected');
+        c.setAttribute('aria-checked', 'false');
+      });
+      chip.classList.add('is-selected');
+      chip.setAttribute('aria-checked', 'true');
+
+      selectedVariantId = Number(chip.getAttribute('data-variant-id'));
+      const pricePaise = chip.getAttribute('data-price-paise');
+      const comparePaise = chip.getAttribute('data-compare-paise');
+      const stock = Number(chip.getAttribute('data-stock') || 0);
+
+      // Update price display if priced
+      if (pricePaise) {
+        const priceEl = document.getElementById('active-price');
+        if (priceEl) priceEl.textContent = `₹${Math.floor(Number(pricePaise) / 100).toLocaleString('en-IN')}`;
+      }
+
+      // Update stock display dynamically
+      const stockText = document.getElementById('pdp-stock-text');
+      const stockBadge = document.getElementById('pdp-stock-badge');
+      const addCartBtn = document.getElementById('btn-add-cart-main') as HTMLButtonElement | null;
+      const buyNowBtn = document.getElementById('btn-buy-now-main') as HTMLButtonElement | null;
+
+      if (stock <= 0) {
+        if (stockText) stockText.textContent = 'Out of Stock — Custom craft on request';
+        if (stockBadge) stockBadge.className = 'pdp-stock-badge pdp-stock-badge--out';
+        if (addCartBtn) {
+          addCartBtn.disabled = true;
+          addCartBtn.querySelector('span')!.textContent = 'Out of Stock';
+        }
+        if (buyNowBtn) {
+          buyNowBtn.disabled = true;
+          buyNowBtn.querySelector('span')!.textContent = 'Out of Stock';
+        }
+      } else {
+        if (stockText) stockText.textContent = stock < 5 ? `Low Stock: Only ${stock} left in workshop` : `In Stock: ${stock} pieces ready to dispatch`;
+        if (stockBadge) stockBadge.className = 'pdp-stock-badge pdp-stock-badge--in';
+        if (addCartBtn) {
+          addCartBtn.disabled = false;
+          addCartBtn.querySelector('span')!.textContent = 'Add to Cart';
+        }
+        if (buyNowBtn) {
+          buyNowBtn.disabled = false;
+          buyNowBtn.querySelector('span')!.textContent = 'Instant Buy Now';
+        }
+      }
+    });
+  });
+
+  // Quantity controls
+  const minus = document.getElementById('qty-minus');
+  const plus = document.getElementById('qty-plus');
+  const input = document.getElementById('qty-input') as HTMLInputElement | null;
+
+  minus?.addEventListener('click', () => {
+    if (!input) return;
+    const cur = parseInt(input.value || '1', 10);
+    if (cur > 1) input.value = String(cur - 1);
+  });
+
+  plus?.addEventListener('click', () => {
+    if (!input) return;
+    const cur = parseInt(input.value || '1', 10);
+    if (cur < 99) input.value = String(cur + 1);
+  });
+
+  // Add to cart main
+  const addCartBtn = document.getElementById('btn-add-cart-main');
+  const stickyCartBtn = document.getElementById('sticky-btn-cart');
+
+  function addToCart() {
+    const qty = parseInt(input?.value || '1', 10);
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+      const existing = cart.find((i: any) => i.variant_id === selectedVariantId);
+      if (existing) {
+        existing.qty += qty;
+      } else {
+        cart.push({ variant_id: selectedVariantId, qty });
+      }
+      localStorage.setItem('cart', JSON.stringify(cart));
+      (window as any).refreshCartDrawer?.();
+
+      if (addCartBtn) {
+        const orig = addCartBtn.innerHTML;
+        addCartBtn.innerHTML = '<span>Added to Cart! ✓</span>';
+        addCartBtn.style.background = '#2F6B4F';
+        setTimeout(() => {
+          addCartBtn.innerHTML = orig;
+          addCartBtn.style.background = '';
+        }, 1800);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  addCartBtn?.addEventListener('click', addToCart);
+  stickyCartBtn?.addEventListener('click', addToCart);
+
+  // Buy now main
+  const buyNowBtn = document.getElementById('btn-buy-now-main');
+  buyNowBtn?.addEventListener('click', () => {
+    addToCart();
+    window.location.href = '/checkout';
+  });
+
+  // Wishlist Button Handlers
+  document.querySelectorAll('.btn-pdp-wishlist').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      (window as any).handleWishlistToggle?.(e, btn);
+    });
+  });
+
+  // Check wishlist state on load
+  try {
+    fetch('/api/wishlist')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.product_ids && Array.isArray(data.product_ids)) {
+          document.querySelectorAll('.btn-pdp-wishlist').forEach(btn => {
+            const pId = btn.getAttribute('data-wishlist-id');
+            if (pId && data.product_ids.includes(pId)) {
+              btn.classList.add('is-active');
+            }
+          });
+        }
+      })
+      .catch(() => {});
+  } catch {}
+</script>

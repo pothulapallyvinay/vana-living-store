@@ -1,0 +1,115 @@
+---
+// src/components/AnnouncementBar.astro
+import { shipping, site } from '../config/site';
+
+interface Props {
+  text?: string;
+  linkText?: string;
+  linkUrl?: string;
+}
+
+const {
+  text = `✨ Complimentary All-India Shipping on Orders Above ₹${Math.floor(shipping.freeAbovePaise / 100).toLocaleString('en-IN')} | Handcrafted with Precision in Solid Birch & Walnut`,
+  linkText = "Explore Collection",
+  linkUrl = "/collections/all"
+} = Astro.props;
+---
+
+<div id="announcement-bar" class="announcement-bar" role="region" aria-label="Announcement">
+  <div class="announcement-bar__inner">
+    <span class="announcement-bar__text">
+      {text}
+      {linkText && linkUrl && (
+        <a href={linkUrl} class="announcement-bar__link">{linkText} &rarr;</a>
+      )}
+    </span>
+    <button id="announcement-close" class="announcement-bar__close" aria-label="Dismiss announcement">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<style>
+  .announcement-bar {
+    background: linear-gradient(90deg, #3A2013 0%, #4A2C1D 50%, #3A2013 100%);
+    color: #F8EFE4;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    padding: 0.5rem 1rem;
+    position: relative;
+    z-index: 50;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    border-bottom: 1px solid rgba(185, 128, 58, 0.25);
+  }
+
+  .announcement-bar.is-hidden {
+    display: none;
+  }
+
+  .announcement-bar__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    padding: 0 2rem;
+  }
+
+  .announcement-bar__text {
+    line-height: 1.4;
+  }
+
+  .announcement-bar__link {
+    color: #E2B273;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    margin-left: 0.5rem;
+    display: inline-block;
+    transition: color 0.2s ease;
+  }
+
+  .announcement-bar__link:hover {
+    color: #FFF;
+  }
+
+  .announcement-bar__close {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: rgba(248, 239, 228, 0.7);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .announcement-bar__close:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.1);
+  }
+</style>
+
+<script>
+  const bar = document.getElementById('announcement-bar');
+  const closeBtn = document.getElementById('announcement-close');
+  if (sessionStorage.getItem('dismiss_announcement') === '1') {
+    if (bar) bar.classList.add('is-hidden');
+  }
+  closeBtn?.addEventListener('click', () => {
+    if (bar) bar.classList.add('is-hidden');
+    sessionStorage.setItem('dismiss_announcement', '1');
+  });
+</script>

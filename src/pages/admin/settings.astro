@@ -1,0 +1,129 @@
+---
+// src/pages/admin/settings.astro
+import Admin from '../../layouts/Admin.astro';
+import { getDB, all } from '../../lib/db';
+import { site, shipping } from '../../config/site';
+
+const env = (Astro.locals as any).runtime?.env || (process.env as any);
+const dbSettings: Record<string, string> = {};
+
+if (env?.DB) {
+  try {
+    const db = getDB(env);
+    const rows = await all<{ key: string; value: string }>(db, `SELECT key, value FROM settings`);
+    for (const r of rows) dbSettings[r.key] = r.value;
+  } catch {}
+}
+---
+
+<Admin title="Store Settings" activeNav="settings">
+  <div class="admin-card" style="max-width:800px;">
+    <h2 style="font-family:var(--admin-font-head);font-size:1.6rem;color:var(--admin-primary);margin:0 0 1.5rem 0;">E-Commerce Store & Logistics Configuration</h2>
+    
+    <div id="settings-alert" style="display:none;padding:0.75rem 1rem;border-radius:6px;margin-bottom:1.25rem;font-size:0.85rem;"></div>
+
+    <form id="store-settings-form">
+      <h3 style="font-size:1rem;color:var(--admin-primary);border-bottom:1px solid var(--admin-border);padding-bottom:0.5rem;margin:1.5rem 0 1rem;">Brand & Contact Info</h3>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">Store / Brand Name</label>
+          <input type="text" name="brand_name" value={dbSettings.brand_name || site.name} style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">WhatsApp Number (India)</label>
+          <input type="text" name="whatsapp_number" value={dbSettings.whatsapp_number || site.whatsapp} placeholder="919876543210" style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.5rem;">
+        <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">Customer Support Email</label>
+        <input type="email" name="support_email" value={dbSettings.support_email || site.supportEmail} style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+      </div>
+
+      <h3 style="font-size:1rem;color:var(--admin-primary);border-bottom:1px solid var(--admin-border);padding-bottom:0.5rem;margin:1.5rem 0 1rem;">Shipping & COD Rules</h3>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">Free Shipping Threshold (₹)</label>
+          <input type="number" name="free_shipping_threshold" value={dbSettings.free_shipping_threshold || Math.floor(shipping.freeAbovePaise / 100)} style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">Standard Flat Shipping Rate (₹)</label>
+          <input type="number" name="flat_shipping_rate" value={dbSettings.flat_shipping_rate || Math.floor(shipping.flatRatePaise / 100)} style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;">
+        <div>
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">COD Maximum Limit (₹)</label>
+          <input type="number" name="cod_limit" value={dbSettings.cod_limit || Math.floor(shipping.codLimitPaise / 100)} style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+        <div>
+          <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">COD Advance Required (%)</label>
+          <input type="number" name="advance_percent" value={dbSettings.advance_percent || shipping.advancePercent} style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;" />
+        </div>
+      </div>
+
+      <h3 style="font-size:1rem;color:var(--admin-primary);border-bottom:1px solid var(--admin-border);padding-bottom:0.5rem;margin:1.5rem 0 1rem;">Header Announcement Ribbon</h3>
+      
+      <div style="margin-bottom:2rem;">
+        <label style="display:block;font-size:0.84rem;font-weight:600;margin-bottom:0.35rem;">Announcement Bar Text</label>
+        <textarea name="announcement_text" rows="2" style="width:100%;padding:0.6rem;border:1px solid var(--admin-border);border-radius:4px;box-sizing:border-box;">{dbSettings.announcement_text || 'Complimentary All-India Shipping on Orders Above ₹999 | Handcrafted in Solid Birch & Walnut'}</textarea>
+      </div>
+
+      <button type="submit" id="btn-save-settings" class="admin-btn admin-btn--primary" style="padding:0.75rem 2rem;">
+        Save Store Settings
+      </button>
+    </form>
+  </div>
+</Admin>
+
+<script>
+  const form = document.getElementById('store-settings-form') as HTMLFormElement | null;
+  const alertBox = document.getElementById('settings-alert');
+  const btn = document.getElementById('btn-save-settings') as HTMLButtonElement | null;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!form || !alertBox || !btn) return;
+    alertBox.style.display = 'none';
+
+    const formData = new FormData(form);
+    const payload: Record<string, string> = {};
+    formData.forEach((val, key) => {
+      payload[key] = String(val);
+    });
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        alertBox.style.background = '#D1FAE5';
+        alertBox.style.color = '#065F46';
+        alertBox.textContent = '✓ Store settings saved to D1 successfully.';
+        alertBox.style.display = 'block';
+      } else {
+        alertBox.style.background = '#FEE2E2';
+        alertBox.style.color = '#991B1B';
+        alertBox.textContent = 'Failed to save settings.';
+        alertBox.style.display = 'block';
+      }
+    } catch {
+      alertBox.style.background = '#FEE2E2';
+      alertBox.style.color = '#991B1B';
+      alertBox.textContent = 'Network communication error.';
+      alertBox.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Save Store Settings';
+    }
+  });
+</script>

@@ -1,0 +1,73 @@
+---
+// src/pages/policies/shipping-delivery.astro
+import Base from '../../layouts/Base.astro';
+import { site, shipping } from '../../config/site';
+---
+
+<Base title={`Shipping & Delivery Policy — ${site.name}`}>
+  <div class="site-container content-page-container policy-container">
+    <span class="policy-tag">STORE POLICIES</span>
+    <h1 class="policy-title">Shipping & Delivery Policy</h1>
+    <p class="policy-update">Last updated: October 2026</p>
+
+    <div class="policy-body">
+      <h2>1. All-India Shipping Coverage</h2>
+      <p>
+        {site.name} delivers handcrafted 3D layered wooden art, clocks, and designer lighting fixtures to all serviceable postal PIN codes across India via premium surface and air express couriers (including Blue Dart, Delhivery, DTDC, and India Post Speed Post).
+      </p>
+
+      <h2>2. Shipping Charges & Free Delivery Threshold</h2>
+      <ul>
+        <li>
+          <strong>Complimentary Free Shipping:</strong> Orders with a subtotal value of <strong>₹{Math.floor(shipping.freeAbovePaise / 100).toLocaleString('en-IN')} or above</strong> qualify for complimentary free delivery across India.
+        </li>
+        <li>
+          <strong>Standard Flat Rate:</strong> For orders below this threshold, a flat delivery fee of <strong>₹{Math.floor(shipping.flatRatePaise / 100)}</strong> is applied at checkout.
+        </li>
+      </ul>
+
+      <h2>3. Order Processing & Dispatch Timelines</h2>
+      <p>
+        Because our pieces involve multi-tier precision laser cutting, hand assembly, sanding, and botanical oil finishing, each item undergoes rigorous quality assurance before dispatch:
+      </p>
+      <ul>
+        <li><strong>Standard Catalog Items:</strong> Dispatched from our artisan workshop within <strong>{shipping.estimatedDispatchDays} business days</strong> from order confirmation.</li>
+        <li><strong>Custom / Large Architectural Commissions:</strong> Dispatched within <strong>[OWNER TO CONFIRM: 7–10] business days</strong>.</li>
+      </ul>
+
+      <h2>4. Estimated Delivery Timelines</h2>
+      <ul>
+        <li><strong>Metro Cities (Delhi NCR, Mumbai, Bengaluru, Chennai, Hyderabad, Kolkata):</strong> 3 to 5 business days post-dispatch.</li>
+        <li><strong>Rest of India (Tier 2/3 Cities & Regional Towns):</strong> 5 to 7 business days post-dispatch.</li>
+        <li><strong>Remote / North-East / Island Territories:</strong> 7 to 10 business days post-dispatch.</li>
+      </ul>
+
+      <h2>5. Specialized Damage-Proof Wooden Crate Packaging</h2>
+      <p>
+        Every dimensional wood sculpture is cushioned with high-density EPE foam suspension, sealed against moisture, and crated inside rigid corrugated wooden reinforcement frames.
+      </p>
+
+      <h2>6. Cash on Delivery (COD) Rules</h2>
+      <p>
+        Cash on Delivery is enabled for orders up to <strong>₹{Math.floor(shipping.codLimitPaise / 100).toLocaleString('en-IN')}</strong>. For orders exceeding this threshold, a <strong>{shipping.advancePercent}% advance payment</strong> is processed online via Razorpay to confirm custom lumber dedication, with the remaining balance due upon physical delivery.
+      </p>
+
+      <h2>7. Shipment Tracking & Inquiries</h2>
+      <p>
+        Upon handover to our courier partner, automated tracking details (AWB number and real-time tracking link) are sent via SMS, WhatsApp, and email. You may also track orders directly on our store or reach our support team at <a href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a> or via WhatsApp at <code>+{site.whatsapp}</code>.
+      </p>
+    </div>
+  </div>
+</Base>
+
+<style>
+  .policy-container { padding-top: 3.5rem; padding-bottom: 6rem; max-width: 840px; }
+  .policy-tag { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; color: var(--accent, #B9803A); }
+  .policy-title { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 2.75rem; color: var(--primary, #4A2C1D); margin: 0.5rem 0 0.25rem; }
+  .policy-update { font-size: 0.8125rem; color: var(--ink-2, #6B5A50); margin-bottom: 2.5rem; }
+  .policy-body h2 { font-family: var(--font-head, 'Cormorant Garamond', Georgia, serif); font-size: 1.5rem; color: var(--primary, #4A2C1D); margin: 2rem 0 0.75rem; }
+  .policy-body p, .policy-body li { font-size: 0.95rem; line-height: 1.7; color: var(--ink-2, #6B5A50); }
+  .policy-body ul { padding-left: 1.25rem; margin-bottom: 1.25rem; }
+  .policy-body li { margin-bottom: 0.5rem; }
+  .policy-body a { color: var(--accent, #B9803A); font-weight: 600; }
+</style>
